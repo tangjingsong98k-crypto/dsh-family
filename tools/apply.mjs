@@ -135,15 +135,16 @@ function profileManifest(mirror) {
  * 渲染补丁层：模板里的占位符换成真实路径与配置值。
  * @param {string} template - 模板文本
  * @param {object} mirror - 配置
+ * @param {string} dietQq - 这台设备该看谁的饮食（设备本地配置优先）
  * @returns {string} 渲染结果
  */
-function renderPatch(template, mirror) {
+function renderPatch(template, mirror, dietQq) {
   const kit = KIT_ROOT.replace(/\\/g, '/')
   const data = PATHS.data.replace(/\\/g, '/')
   return template
     .split('{{KIT}}').join(kit)
     .split('{{DATA}}').join(data)
-    .split('{{DIET_QQ}}').join(String(mirror.data.dietQq))
+    .split('{{DIET_QQ}}').join(String(dietQq))
     .split('{{KEEP_DAYS}}').join(String(mirror.data.keepDays))
 }
 
@@ -195,8 +196,14 @@ export async function apply({ check = false } = {}) {
 
   const template = await readText(PATHS.profileTemplate)
   if (template === '') throw new Error(`缺少补丁模板：${PATHS.profileTemplate}`)
+  // 每台设备看谁的饮食是「设备本地」的事：config.local.json 的 dietQq 优先，
+  // 没配才用仓库里的全局默认（mirror.json.data.dietQq）。
+  const local = await readJson(PATHS.localConfig, {})
+  const dietQq = typeof local.dietQq === 'string' && local.dietQq.trim() !== ''
+    ? local.dietQq.trim()
+    : String(mirror.data.dietQq)
   const patchFile = path.join(profileDir, 'cordis.patch.yml')
-  const patchText = renderPatch(template, mirror)
+  const patchText = renderPatch(template, mirror, dietQq)
   const patchBefore = await textOf(patchFile)
   if (patchBefore !== patchText) {
     reasons.push('cordis.patch.yml 有变化')
@@ -240,6 +247,7 @@ export async function apply({ check = false } = {}) {
     await writeJson(PATHS.state, {
       appliedAt: new Date().toISOString(),
       dshVersion: mirror.dsh.version,
+      dietQq,
       manifestHash: await treeHash(profileDir),
       pluginHash,
       pluginCount: mirror.plugins.filter(plugin => plugin.enabled === true).length,

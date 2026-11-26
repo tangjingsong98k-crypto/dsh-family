@@ -166,6 +166,14 @@ async function drainOps(mirror) {
       continue
     }
     const id = path.basename(entry.name, '.json')
+    // 一台机器可能同时有好几台在读同一个仓库：指令带 target 的只让目标机器执行，
+    // 不带的（或 target=*）谁都执行；不是给自己的就留在队列里，等目标机器来取。
+    const target = typeof op.target === 'string' ? op.target.trim() : ''
+    const self = hostName()
+    if (target !== '' && target !== '*' && target.toLowerCase() !== self.toLowerCase()) {
+      results.push({ id, action: op.action, skipped: true, target })
+      continue
+    }
     await log('agent', `执行远程指令 ${id}：${op.action}`)
     const result = await runOp(op, mirror).catch(error => ({ ok: false, error: String(error) }))
     const record = { id, action: op.action, ranAt: isoNow(), ...result }
@@ -232,6 +240,7 @@ export async function once({ quiet = false } = {}) {
   const after = await serverStatus(port)
   const version = await installedDshVersion()
   const data = await dataSummary()
+  const state = await readJson(PATHS.state, {})
   const commit = (await git(['rev-parse', '--short', 'HEAD'])).stdout.trim()
   const dirty = (await git(['status', '--porcelain'])).stdout.trim() !== ''
 
@@ -246,6 +255,7 @@ export async function once({ quiet = false } = {}) {
     pids: after.pids,
     url: after.url,
     appliedAt: (await readJson(PATHS.state, {})).appliedAt ?? '',
+    dietQq: typeof state.dietQq === 'string' ? state.dietQq : '',
     applied: applied.reasons,
     restarted,
     ops: ops.map(op => ({ id: op.id, action: op.action, ok: op.ok === true })),

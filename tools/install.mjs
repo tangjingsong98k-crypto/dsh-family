@@ -154,6 +154,7 @@ async function main() {
   const patch = {}
   if (typeof flags.remote === 'string' && flags.remote.trim() !== '') patch.remote = flags.remote.trim()
   if (typeof flags['api-key'] === 'string' && flags['api-key'].trim() !== '') patch.apiKey = flags['api-key'].trim()
+  if (typeof flags['diet-qq'] === 'string' && flags['diet-qq'].trim() !== '') patch.dietQq = flags['diet-qq'].trim()
   if (typeof flags.registry === 'string' && flags.registry.trim() !== '') {
     const mirror = JSON.parse(await readText(PATHS.mirror))
     mirror.dsh.npmRegistry = flags.registry.trim()
@@ -162,6 +163,9 @@ async function main() {
   if (Object.keys(patch).length > 0) await saveLocalConfig(patch)
 
   const local = await loadLocalConfig()
+  if (typeof local.dietQq === 'string' && local.dietQq.trim() !== '') {
+    await log('install', `这台设备的面板看 QQ ${local.dietQq.trim()} 的饮食（config.local.json）`)
+  }
   const apiKey = pickApiKey(flags, local)
   if (apiKey !== '') {
     const changed = await writeCredentials(apiKey)

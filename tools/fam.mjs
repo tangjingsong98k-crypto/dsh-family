@@ -89,10 +89,12 @@ async function commitPush(paths, message) {
  * @param {object} options - `{ wait }`
  * @returns {Promise<object>} 结果
  */
-async function enqueue(action, args, { wait = true } = {}) {
+async function enqueue(action, args, { wait = true, to = '' } = {}) {
   const id = `${stamp().replace(/[-: ]/g, '')}-${Math.random().toString(36).slice(2, 6)}`
   await ensureDirs(PATHS.ops)
-  await writeJson(path.join(PATHS.ops, `${id}.json`), { id, action, args, createdAt: isoNow() })
+  const op = { id, action, args, createdAt: isoNow() }
+  if (to !== '') op.target = to
+  await writeJson(path.join(PATHS.ops, `${id}.json`), op)
   const pushNote = await commitPush(['ops'], `ops: ${action} ${id}`)
   console.log(`已排队 ${action}（${id}）${pushNote}`)
   if (!wait) return { id, pushed: pushNote }
@@ -137,6 +139,7 @@ async function showStatus() {
     console.log(`  运行状态   ${status.running ? '在跑' : '没起来'}${status.http ? `，HTTP ${status.http}` : ''}${status.pids?.length ? `，pid ${status.pids.join(',')}` : ''}`)
     console.log(`  登录链接   ${status.url || '(无)'}`)
     console.log(`  数据时间   ${status.data?.stats?.generatedAt || '(还没同步过)'}`)
+    console.log(`  饮食看着   ${status.dietQq || '(仓库默认)'}${(status.data?.dietUsers ?? []).length > 0 ? `；快照里还有 ${(status.data.dietUsers).join(', ')}` : '；快照是空的'}`)
     console.log(`  账本/饮食  ${status.data?.ledgerCount ?? 0} 笔 / ${(status.data?.dietUsers ?? []).join(', ') || '无'}`)
     console.log(`  仓库       ${status.repo?.commit ?? '?'}${status.repo?.dirty ? '（有未提交改动）' : ''}；${status.repo?.sync ?? ''}`)
     if (Array.isArray(status.applied) && status.applied.length > 0) console.log(`  最近应用   ${status.applied.join('；')}`)
@@ -154,7 +157,7 @@ async function showStatus() {
  *
  * @returns {Promise<string>} zip 路径
  */
-async function pack() {
+async function pack({ dietQq = '' } = {}) {
   const mirror = await loadMirror()
   const remote = await resolveRemote(mirror)
   const local = await loadLocalConfig()
@@ -183,7 +186,9 @@ async function pack() {
   await ensureDirs(path.join(stage, 'data'), path.join(stage, 'status'), path.join(stage, 'ops'))
 
   const apiKey = await localApiKey()
-  await writeJson(path.join(stage, 'config.local.json'), { remote, apiKey, packedAt: isoNow() })
+  const config = { remote, apiKey, packedAt: isoNow() }
+  if (dietQq !== '') config.dietQq = dietQq
+  await writeJson(path.join(stage, 'config.local.json'), config)
 
   const zipFile = path.join(dist, `dsh-family-kit-${stamp().replace(/[: ]/g, '-')}.zip`)
   if (await pathExists(zipFile)) {
@@ -316,7 +321,7 @@ async function main() {  const { _, flags } = parseArgs(process.argv.slice(2))
       const args = {}
       if (command === 'logs') args.lines = Number(flags.lines) > 0 ? Number(flags.lines) : 60
       if (command === 'shell') args.command = _.slice(1).join(' ')
-      const result = await enqueue(command, args)
+      const result = await enqueue(command, args, { to: typeof flags.to === 'string' ? flags.to : '' })
       console.log(JSON.stringify(result, null, 2))
       return
     }
@@ -365,7 +370,7 @@ async function main() {  const { _, flags } = parseArgs(process.argv.slice(2))
       return
     }
     case 'pack': {
-      await pack()
+      await pack({ dietQq: typeof flags.qq === 'string' ? flags.qq.trim() : '' })
       return
     }
     case 'install-publish-task': {
@@ -385,7 +390,8 @@ async function main() {  const { _, flags } = parseArgs(process.argv.slice(2))
       return
     }
     default:
-      console.log('命令：status | data | push | version <v> | plugin <名> on|off | restart | apply | diagnose | logs [--lines n] | shell "<命令>" | ops | remote <url> | init | pack | install-publish-task | install-agent-tasks')
+      console.log('命令：status | data | push | version <v> | plugin <名> on|off | restart | apply | diagnose | logs [--lines n] | shell "<命令>" | ops | remote <url> | init | pack [--qq <QQ>] | install-publish-task | install-agent-tasks')
+      console.log('远程指令可加 --to <主机名>（或 --to *）指定哪台机器执行；不带就是所有机器都执行。')
   }
 }
 

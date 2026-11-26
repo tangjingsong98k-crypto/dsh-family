@@ -95,7 +95,8 @@ export async function readJson(file, fallback = undefined) {
     if (error !== null && typeof error === 'object' && error.code === 'ENOENT' && fallback !== undefined) return fallback
     throw error
   }
-  return JSON.parse(text)
+  // Windows 记事本会给 UTF-8 加 BOM，JSON.parse 不认；这里统一剥掉。
+  return JSON.parse(text.replace(/^\uFEFF/, ''))
 }
 
 /**
