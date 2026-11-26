@@ -1,0 +1,11 @@
+# 批处理/脚本按 Windows 习惯走 CRLF；代码与数据用 LF 保持一致。
+* text=auto
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.vbs text eol=crlf
+*.mjs text eol=lf
+*.py text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.tpl text eol=lf

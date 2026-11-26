@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "updatedAt": "2026-11-26T09:14:15.296Z",
+  "entries": [
+    {
+      "id": "bmwp21gcmenpt",
+      "date": "2026-11-20",
+      "kind": "expense",
+      "amount": 4,
+      "category": "交通",
+      "note": "公交",
+      "createdAt": "2026-11-20T14:08:46.342Z",
+      "updatedAt": "2026-11-20T14:08:46.342Z"
+    },
+    {
+      "id": "bmwq9myqw4pn3",
+      "date": "2026-11-20",
+      "kind": "expense",
+      "amount": 25.4,
+      "category": "餐饮",
+      "note": "外卖华莱士",
+      "createdAt": "2026-11-21T10:29:13.448Z",
+      "updatedAt": "2026-11-25T06:21:10.567Z"
+    },
+    {
+      "id": "bmwq9nkiso6bb",
+      "date": "2026-11-21",
+      "kind": "expense",
+      "amount": 15,
+      "category": "餐饮",
+      "note": "外卖香河肉饼",
+      "createdAt": "2026-11-21T10:29:41.668Z",
+      "updatedAt": "2026-11-25T06:21:03.046Z"
+    },
+    {
+      "id": "bmwq9pru0e5ws",
+      "date": "2026-11-21",
+      "kind": "expense",
+      "amount": 66.8,
+      "category": "餐饮",
+      "note": "零食",
+      "createdAt": "2026-11-21T10:31:24.456Z",
+      "updatedAt": "2026-11-21T10:31:24.456Z"
+    },
+    {
+      "id": "bmwt9jnm75lu9",
+      "date": "2026-11-22",
+      "kind": "expense",
+      "amount": 25.9,
+      "category": "餐饮",
+      "note": "外卖咖喱猪排饭",
+      "createdAt": "2026-11-23T12:49:57.583Z",
+      "updatedAt": "2026-11-23T12:50:18.728Z"
+    },
+    {
+      "id": "bmwt9khx045u0",
+      "date": "2026-11-23",
+      "kind": "expense",
+      "amount": 4,
+      "category": "交通",
+      "note": "公交",
+      "createdAt": "2026-11-23T12:50:36.852Z",
+      "updatedAt": "2026-11-25T06:21:23.976Z"
+    },
+    {
+      "id": "bmwuviimscsuy",
+      "date": "2026-11-24",
+      "kind": "expense",
+      "amount": 4,
+      "category": "交通",
+      "note": "公交",
+      "createdAt": "2026-11-24T15:52:42.195Z",
+      "updatedAt": "2026-11-25T06:21:28.745Z"
+    },
+    {
+      "id": "bmwvqb40iiamq",
+      "date": "2026-11-25",
+      "kind": "expense",
+      "amount": 98,
+      "category": "娱乐",
+      "note": "终末地充值",
+      "createdAt": "2026-11-25T06:14:44.754Z",
+      "updatedAt": "2026-11-25T06:20:00.230Z"
+    },
+    {
+      "id": "bmwvqb9j4epl2",
+      "date": "2026-11-25",
+      "kind": "expense",
+      "amount": 198,
+      "category": "娱乐",
+      "note": "终末地充值",
+      "createdAt": "2026-11-25T06:14:51.904Z",
+      "updatedAt": "2026-11-25T06:20:40.270Z"
+    },
+    {
+      "id": "bmwvqgfqlnc8e",
+      "date": "2026-11-25",
+      "kind": "expense",
+      "amount": 68,
+      "category": "娱乐",
+      "note": "终末地充值",
+      "createdAt": "2026-11-25T06:18:53.229Z",
+      "updatedAt": "2026-11-25T06:20:44.320Z"
+    },
+    {
+      "id": "bmwvqgwty0oe5",
+      "date": "2026-11-25",
+      "kind": "expense",
+      "amount": 108,
+      "category": "娱乐",
+      "note": "终末地充值",
+      "createdAt": "2026-11-25T06:19:15.382Z",
+      "updatedAt": "2026-11-25T06:20:46.879Z"
+    },
+    {
+      "id": "bmwvqjvrkdais",
+      "date": "2026-11-25",
+      "kind": "expense",
+      "amount": 4,
+      "category": "交通",
+      "note": "公交",
+      "createdAt": "2026-11-25T06:21:33.968Z",
+      "updatedAt": "2026-11-25T06:21:33.968Z"
+    },
+    {
+      "id": "bmww317atbemo",
+      "date": "2026-11-25",
+      "kind": "expense",
+      "amount": 98,
+      "category": "娱乐",
+      "note": "终末地充值",
+      "createdAt": "2026-11-25T12:10:57.461Z",
+      "updatedAt": "2026-11-25T12:10:57.461Z"
+    },
+    {
+      "id": "bmww31c7kmndk",
+      "date": "2026-11-25",
+      "kind": "expense",
+      "amount": 198,
+      "category": "娱乐",
+      "note": "终末地充值",
+      "createdAt": "2026-11-25T12:11:03.824Z",
+      "updatedAt": "2026-11-25T12:11:03.824Z"
+    },
+    {
+      "id": "bmww31g3sj7ix",
+      "date": "2026-11-25",
+      "kind": "expense",
+      "amount": 68,
+      "category": "娱乐",
+      "note": "终末地充值",
+      "createdAt": "2026-11-25T12:11:08.872Z",
+      "updatedAt": "2026-11-25T12:11:08.872Z"
+    },
+    {
+      "id": "bmwxc3xnibrs9",
+      "date": "2026-11-26",
+      "kind": "expense",
+      "amount": 4,
+      "category": "交通",
+      "note": "公交",
+      "createdAt": "2026-11-26T09:12:47.646Z",
+      "updatedAt": "2026-11-26T09:12:47.646Z"
+    },
+    {
+      "id": "bmwxc4y4g44r5",
+      "date": "2026-11-26",
+      "kind": "expense",
+      "amount": 5.7,
+      "category": "购物",
+      "note": "玩偶跑跑龙泡泡定金",
+      "createdAt": "2026-11-26T09:13:34.912Z",
+      "updatedAt": "2026-11-26T09:13:34.912Z"
+    },
+    {
+      "id": "bmwxc5ta8t546",
+      "date": "2026-11-25",
+      "kind": "expense",
+      "amount": 20.8,
+      "category": "餐饮",
+      "note": "外卖猪脚饭",
+      "createdAt": "2026-11-26T09:14:15.296Z",
+      "updatedAt": "2026-11-26T09:14:15.296Z"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+# 装出来的运行时、日志、本机配置都别进仓库。
+runtime/
+logs/
+dist/
+tools/run/
+config.local.json
+publisher.json
+secrets/
+*.log
+
+# 每台机器的启动器/登录快捷方式（install.mjs 生成，路径与 token 是本机的）
+start.cmd
+stop.cmd
+打开 DSH.url

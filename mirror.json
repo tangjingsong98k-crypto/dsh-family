@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "name": "dsh-family-kit",
+  "note": "家人电脑的唯一事实源：改这里 -> 推送 -> 家人电脑的代理任务会在 2 分钟内收敛（版本、插件、配置）。",
+  "dsh": {
+    "version": "0.2.2-rc.2",
+    "port": 38090,
+    "host": "127.0.0.1",
+    "npmRegistry": "https://registry.npmmirror.com",
+    "nodeVersion": "24.19.0"
+  },
+  "git": {
+    "remote": "",
+    "branch": "main"
+  },
+  "profile": {
+    "name": "web"
+  },
+  "data": {
+    "dietQq": "1044949250",
+    "dietUsers": [
+      "1044949250"
+    ],
+    "keepDays": 420
+  },
+  "agent": {
+    "intervalMinutes": 2,
+    "keepLogLines": 40
+  },
+  "plugins": [
+    {
+      "name": "@local/dsh-balance",
+      "spec": "link:{{KIT}}/plugins/dsh-balance",
+      "bundle": true,
+      "enabled": true,
+      "why": "收支 + 饮食面板（只读镜像：账本来自主电脑，饮食读 diet.json 快照）"
+    },
+    {
+      "name": "dsh-plugin-health",
+      "spec": "3.2.1",
+      "bundle": true,
+      "enabled": true,
+      "why": "插件体检，远程排障时直接看它"
+    },
+    {
+      "name": "dsh-context",
+      "spec": "0.85.1",
+      "bundle": true,
+      "enabled": true,
+      "why": "上下文用量显示（主电脑同款）"
+    },
+    {
+      "name": "dsh-whale-widget",
+      "spec": "0.4.2",
+      "bundle": true,
+      "enabled": true,
+      "why": "右下角小鱼挂件（主电脑同款）"
+    },
+    {
+      "name": "dshmarket",
+      "spec": "1.73.20",
+      "bundle": true,
+      "enabled": false,
+      "why": "插件市场；家人电脑装插件统一走本清单，默认关"
+    },
+    {
+      "name": "dsh-bili-eyes",
+      "spec": "0.8.3",
+      "bundle": true,
+      "enabled": false,
+      "why": "B 站插件，需要登录态，默认不开"
+    },
+    {
+      "name": "@local/dsh-bookshelf",
+      "spec": "link:{{KIT}}/plugins/dsh-bookshelf",
+      "bundle": true,
+      "enabled": false,
+      "why": "书架；要用的话把源码放进 plugins/ 再打开"
+    },
+    {
+      "name": "@xqpsec/dsh-jailbreak",
+      "spec": "2.1.1",
+      "bundle": true,
+      "enabled": false,
+      "why": "红队工具，家人电脑不需要"
+    }
+  ]
+}

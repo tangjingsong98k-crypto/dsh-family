@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Bookkeeping",
+    "description": "A calendar ledger in the right Sidebar's \"Bookkeeping\" tab (or the calendar button in the Session header). Each day cell shows that day's expense and income subtotals; pick a day to add, edit, or delete its entries below. Underneath are a 12-month income/expense bar chart and this month's expense breakdown by category, with the month's income, expense, and balance on top. Entries live in C:\\custom\\workzone\\balance\\ledger.json (change the directory with config.root in cordis.patch.yml), one JSON file, editable by hand: a broken file makes the plugin report the offending entry instead of overwriting it. The agent records entries too through balance_add, balance_list, balance_edit, and balance_summary, which share the panel's data and validation."
+  }
+}

@@ -1,0 +1,191 @@
+{
+  "generatedAt": "2026-11-26T11:11:52.035Z",
+  "sourceHash": "305eb55812e20f50664c9c959078a633abe855c4",
+  "today": "2026-11-26",
+  "month": "2026-11",
+  "ledger": {
+    "count": 18,
+    "today": {
+      "expense": 9.7,
+      "income": 0,
+      "net": -9.7,
+      "count": 2
+    },
+    "month": {
+      "expense": 1015.6,
+      "income": 0,
+      "net": -1015.6,
+      "count": 18
+    },
+    "categories": [
+      {
+        "category": "娱乐",
+        "amount": 836,
+        "count": 7
+      },
+      {
+        "category": "餐饮",
+        "amount": 153.9,
+        "count": 5
+      },
+      {
+        "category": "交通",
+        "amount": 20,
+        "count": 5
+      },
+      {
+        "category": "购物",
+        "amount": 5.7,
+        "count": 1
+      }
+    ],
+    "recentDays": [
+      {
+        "day": "2026-11-13",
+        "expense": 0,
+        "income": 0
+      },
+      {
+        "day": "2026-11-14",
+        "expense": 0,
+        "income": 0
+      },
+      {
+        "day": "2026-11-15",
+        "expense": 0,
+        "income": 0
+      },
+      {
+        "day": "2026-11-16",
+        "expense": 0,
+        "income": 0
+      },
+      {
+        "day": "2026-11-17",
+        "expense": 0,
+        "income": 0
+      },
+      {
+        "day": "2026-11-18",
+        "expense": 0,
+        "income": 0
+      },
+      {
+        "day": "2026-11-19",
+        "expense": 0,
+        "income": 0
+      },
+      {
+        "day": "2026-11-20",
+        "expense": 29.4,
+        "income": 0
+      },
+      {
+        "day": "2026-11-21",
+        "expense": 81.8,
+        "income": 0
+      },
+      {
+        "day": "2026-11-22",
+        "expense": 25.9,
+        "income": 0
+      },
+      {
+        "day": "2026-11-23",
+        "expense": 4,
+        "income": 0
+      },
+      {
+        "day": "2026-11-24",
+        "expense": 4,
+        "income": 0
+      },
+      {
+        "day": "2026-11-25",
+        "expense": 860.8,
+        "income": 0
+      },
+      {
+        "day": "2026-11-26",
+        "expense": 9.7,
+        "income": 0
+      }
+    ]
+  },
+  "diet": {
+    "qq": "1044949250",
+    "target": 0,
+    "hasData": false,
+    "today": {
+      "kcal": 0,
+      "meals": 0
+    },
+    "month": {
+      "loggedDays": 0,
+      "avg": 0
+    },
+    "recentDays": [
+      {
+        "day": "2026-11-13",
+        "kcal": 0
+      },
+      {
+        "day": "2026-11-14",
+        "kcal": 0
+      },
+      {
+        "day": "2026-11-15",
+        "kcal": 0
+      },
+      {
+        "day": "2026-11-16",
+        "kcal": 0
+      },
+      {
+        "day": "2026-11-17",
+        "kcal": 0
+      },
+      {
+        "day": "2026-11-18",
+        "kcal": 0
+      },
+      {
+        "day": "2026-11-19",
+        "kcal": 0
+      },
+      {
+        "day": "2026-11-20",
+        "kcal": 0
+      },
+      {
+        "day": "2026-11-21",
+        "kcal": 0
+      },
+      {
+        "day": "2026-11-22",
+        "kcal": 0
+      },
+      {
+        "day": "2026-11-23",
+        "kcal": 0
+      },
+      {
+        "day": "2026-11-24",
+        "kcal": 0
+      },
+      {
+        "day": "2026-11-25",
+        "kcal": 0
+      },
+      {
+        "day": "2026-11-26",
+        "kcal": 0
+      }
+    ],
+    "lastLoggedDay": ""
+  },
+  "source": {
+    "ledger": "workzone/balance/ledger.json",
+    "diet": "astrbot_plugin_diet_log"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "记账",
+    "description": "在右栏的「记账」页签（或会话标题栏右侧的日历按钮）里按日历记账：月历上每天显示当天支出/收入小计，点一天就在下面新增、编辑、删除当天账目；下方是 12 个月收支柱状图和本月支出分类占比，顶部是当月收入/支出/结余。账本存在 C:\\custom\\workzone\\balance\\ledger.json（可在 cordis.patch.yml 的 config.root 改目录），一个 JSON 文件装全部账目，手工改也行，写坏时插件会报错指出是第几条、不会覆盖你的文件。Agent 也能直接记账：balance_add / balance_list / balance_edit / balance_summary 四个工具，和面板共用同一份数据和同一套校验。"
+  }
+}

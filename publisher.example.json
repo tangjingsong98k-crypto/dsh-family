@@ -1,0 +1,9 @@
+{
+  "ledger": "C:\\custom\\workzone\\balance\\ledger.json",
+  "balancePlugin": "C:\\custom\\workzone\\playground\\dsh-balance",
+  "diet": {
+    "docker": "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe",
+    "container": "astrbot",
+    "pluginDir": "/AstrBot/data/plugins/astrbot_plugin_diet_log"
+  }
+}

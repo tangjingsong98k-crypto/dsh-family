@@ -1,0 +1,13 @@
+# dsh-balance（记账）的挂载声明。
+#
+# 账本默认放在 C:\custom\workzone\balance；想换地方就改下面的 root（绝对路径）：
+#   ledger.json —— 全部账目，一个文件；
+#   README.md   —— 格式说明，插件首次写入时生成，已存在就不会再动。
+#
+# 安装：dsh plugin --profile web add link:C:\custom\workzone\playground\dsh-balance
+# 或者在 Web 的 Plugins 页面用「Add plugin」选这个目录。
+- insert:
+    - id: dsh-balance
+      name: '@local/dsh-balance'
+      config:
+        root: 'C:\custom\workzone\balance'
