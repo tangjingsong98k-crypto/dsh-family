@@ -159,8 +159,12 @@ async function pack() {
   const remote = await resolveRemote(mirror)
   const local = await loadLocalConfig()
   const dist = path.join(PATHS.kit, 'dist')
-  // 暂存放在系统临时目录：`fs.cp` 不允许把目录拷进自己的子目录，而 dist 就在套件里面。
-  const stage = path.join(os.tmpdir(), `dsh-family-kit-${stamp().replace(/[: ]/g, '-')}`)
+  // 暂存放在系统临时目录，并固定叫 `family-kit`：这样解压出来就是同名目录，
+  // 家人电脑直接放到 C:\custom\dsh\ 下即可（fs.cp 不允许拷进自己的子目录）。
+  const stage = path.join(os.tmpdir(), 'family-kit')
+  if (await pathExists(stage)) {
+    await fs.rename(stage, path.join(os.tmpdir(), `family-kit-old-${stamp().replace(/[: ]/g, '-')}`)).catch(() => {})
+  }
   await ensureDirs(dist)
 
   let note = ''
@@ -188,7 +192,7 @@ async function pack() {
   ], { timeoutMs: 300000 })
   if (result.code !== 0) throw new Error(`压缩失败：${(result.stderr || result.stdout).trim()}`)
   console.log(`已打包：${winPath(zipFile)}（${note}）`)
-  console.log('拷到家人电脑，解压后双击 install.cmd 即可（这台机器要能访问 GitHub 与 npm）。')
+  console.log('拷到家人电脑，解压到 C:\\custom\\dsh\\（得到 family-kit 目录），双击里面的 install.cmd。')
   return zipFile
 }
 

@@ -143,7 +143,7 @@ node tools\fam.mjs pack
 
 ### 2.4 家人电脑：解压 + 双击
 
-1. 解压到 **`C:\custom\dsh\family-kit`**（建议就用这个路径，文档和远程指令都按它写）。
+1. 把 zip 解压到 **`C:\custom\dsh\`**，得到 `C:\custom\dsh\family-kit`（建议就用这个路径，文档和远程指令都按它写）。
 2. 双击 `install.cmd`。它会：
    - 找 Node 24；没有就下便携版到 `runtime\node`（不需要管理员）；
    - 把 DeepSeek API key 写进 `runtime\home\.credentials.yaml`；
