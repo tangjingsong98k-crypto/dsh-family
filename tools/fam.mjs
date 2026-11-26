@@ -186,9 +186,15 @@ async function pack() {
   await writeJson(path.join(stage, 'config.local.json'), { remote, apiKey, packedAt: isoNow() })
 
   const zipFile = path.join(dist, `dsh-family-kit-${stamp().replace(/[: ]/g, '-')}.zip`)
+  if (await pathExists(zipFile)) {
+    await fs.rename(zipFile, `${zipFile}.old-${Date.now()}`).catch(() => {})
+  }
+  // 用 .NET 的 ZipFile 而不是 Compress-Archive：后者会跳过隐藏目录，而 `.git` 正是
+  // Hidden —— 没有它，家人电脑那份就只是个文件夹，永远 pull 不了。
   const result = await run('powershell.exe', [
     '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
-    `Compress-Archive -Path '${stage}' -DestinationPath '${zipFile}' -Force`,
+    "Add-Type -AssemblyName System.IO.Compression.FileSystem; "
+      + `[IO.Compression.ZipFile]::CreateFromDirectory('${stage}', '${zipFile}', 'Optimal', $true)`,
   ], { timeoutMs: 300000 })
   if (result.code !== 0) throw new Error(`压缩失败：${(result.stderr || result.stdout).trim()}`)
   console.log(`已打包：${winPath(zipFile)}（${note}）`)
