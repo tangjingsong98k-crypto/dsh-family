@@ -149,6 +149,7 @@ node tools\fam.mjs pack
    - 把 DeepSeek API key 写进 `runtime\home\.credentials.yaml`；
    - `npm install @deepseek-ai/dsh@<mirror.json 里的版本>`（第一次几分钟，看网速）；
    - 生成 profile（`dsh-balance` + `dsh-plugin-health` + `dsh-context` + `dsh-whale-widget`）；
+   - 用本机的快照渲染一份自己的统计页（`打开统计.url`，看的是这台设备选的 QQ）；
    - 装两个计划任务（登录时 + 每 2 分钟）；
    - 起 DSH，打印带 token 的登录链接。
 3. 装完双击目录里的 **`打开 DSH.url`** 就能进界面；以后开机自动起，链接会随重启刷新。
@@ -279,6 +280,8 @@ node tools\fam.mjs data
   所有机器都执行（广播）；`--to *` 同广播。不是自己的指令会留在 `ops/` 里等目标来取。
 - **每台的本地配置**：`config.local.json`（不提交）里放 `remote`、`apiKey`、`dietQq`——
   同一份代码在不同机器上可以有不同的人、不同的 key。
+- **统计页**：每台设备用本地快照按自己的 `dietQq` 渲染 `data/stats/local.html`；
+  仓库里的 `index.html` 只是默认那个 QQ 的公共副本。
 - **写冲突**：只有主电脑写 `data/`，家人电脑只读（插件层禁写 + agent 以远端为准）；
   `status/` 每台只写自己的文件，推送失败会 `pull --rebase` 后重试。
 - **远端凭据**：每台的 `pack` 包里带着同一个 PAT，等于每台都能读写这个仓库；
@@ -327,6 +330,10 @@ node tools\fam.mjs pack --qq 1044949250
 # 给 99132013 那台打包
 node tools\fam.mjs pack --qq 99132013
 ```
+
+安装/每轮收敛时，`apply.mjs` 会用这台设备选中的 QQ 在本地渲染
+`data\stats\local.html`（双击 `打开统计.url`），所以统计页和面板看到的是同一个人；
+仓库里那份 `data\stats\index.html` 只是「默认那个 QQ」的公共副本。
 
 两条前提：
 
@@ -410,7 +417,7 @@ node tools\fam.mjs pack --qq 99132013
 | 登录链接文件 | `runtime\login-url.txt`、`打开 DSH.url` |
 | 账本镜像 | `data\balance\ledger.json` |
 | 饮食快照 | `data\diet\diet.json` |
-| 统计页 | `data\stats\index.html` |
+| 统计页 | `data\stats\index.html`（仓库默认那个 QQ）、`data\stats\local.html`（本机选的 QQ，`打开统计.url`） |
 | 状态回执 | `status\<主机名>.json`、`status\ops\<指令id>.json` |
 | 远程指令队列 | `ops\*.json`（执行完挪进 `ops\done\`） |
 | 计划任务 | `DSHFamilyAgent`（每 2 分钟）、`DSHFamilyLogon`（登录时）、`DSHFamilyPublish`（本机，每 2 分钟） |

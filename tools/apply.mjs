@@ -11,7 +11,7 @@
 
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import {
   KIT_ROOT,
@@ -27,6 +27,7 @@ import {
   writeJson,
   writeText,
 } from './common.mjs'
+import { renderLocalStats } from './render-stats.mjs'
 
 /**
  * 读一个文件的文本，不存在返回空串。
@@ -208,6 +209,14 @@ export async function apply({ check = false } = {}) {
   if (patchBefore !== patchText) {
     reasons.push('cordis.patch.yml 有变化')
     if (!check) await writeText(patchFile, patchText)
+  }
+
+  if (!check) {
+    // 设备自己的统计页：用本地快照 + 本地账本，按这台设备选的 QQ 算一遍。
+    await renderLocalStats({ dietQq })
+    const page = path.join(PATHS.data, 'stats', 'local.html')
+    const url = pathToFileURL(page).href
+    await writeText(path.join(PATHS.kit, '打开统计.url'), `[InternetShortcut]\r\nURL=${url}\r\n`)
   }
 
   const pluginHash = await treeHash(PATHS.plugins)

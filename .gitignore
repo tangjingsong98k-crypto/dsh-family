@@ -12,3 +12,8 @@ secrets/
 start.cmd
 stop.cmd
 打开 DSH.url
+打开统计.url
+
+# 设备本地渲染的统计页（每台按自己的 QQ 算，不进仓库）
+data/stats/local.html
+data/stats/local.json
