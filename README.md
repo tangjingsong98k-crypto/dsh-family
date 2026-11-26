@@ -88,11 +88,11 @@ family-kit\
 
    ```powershell
    cd C:\custom\dsh\family-kit
-   node tools\fam.mjs init
    node tools\fam.mjs remote "https://<你的GitHub用户名>:<PAT>@github.com/<用户名>/dsh-family-kit.git"
    ```
 
-   `init` 建本地仓库并提交；`remote` 绑远端并推第一版。
+   （仓库已经 init 过、有一个初始提交；第一次只需要 `remote` 这一步。）
+   `remote` 绑远端并推第一版。
    不想把 token 写进 URL 也行：先 `git remote add origin <url>`，靠 Git Credential Manager
    记住凭据——但家人电脑那边仍要在 `config.local.json` 里有可用的远端地址。
 
@@ -110,7 +110,7 @@ node tools\fam.mjs install-publish-task    # 之后每 2 分钟自动发一次
 `fam.mjs data` 会打印这轮发了多少：
 
 ```
-发布完成：账本 27 笔，饮食 2 人，本月支出 ¥1234.50，今日摄入 1680 kcal
+发布完成：账本 18 笔，饮食 1 人，本月支出 ¥1015.60，今日摄入 0 kcal
 git：已提交并推送
 ```
 
@@ -191,7 +191,7 @@ node tools\fam.mjs status
   运行状态   在跑，HTTP 200，pid 12345
   登录链接   http://127.0.0.1:38090/?token=...
   数据时间   2026-11-26T19:10:00.000Z
-  账本/饮食  27 笔 / 99132013, 1044949250
+  账本/饮食  18 笔 / 1044949250
   仓库       a1b2c3d；已是最新
 ```
 
