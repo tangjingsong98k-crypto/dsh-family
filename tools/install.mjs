@@ -106,12 +106,14 @@ async function ensureGitRepo(local, mirror, logger) {
   if (version.code !== 0) return '这台机器没有 git，跳过仓库初始化'
   if (await pathExists(path.join(PATHS.kit, '.git'))) return '已经是 git 仓库'
   await logger('install', '没有 .git：初始化仓库并拉取远端')
+  const branch = mirror.git.branch
   const steps = [
     ['init'],
     ['remote', 'add', 'origin', remote],
-    ['fetch', '--quiet', 'origin', mirror.git.branch],
-    ['reset', '--hard', `origin/${mirror.git.branch}`],
-    ['branch', `--set-upstream-to=origin/${mirror.git.branch}`, mirror.git.branch],
+    ['fetch', '--quiet', 'origin', branch],
+    // -B 而不是 reset：git init 的默认分支可能是 master，这里直接切到远端分支。
+    ['checkout', '-B', branch, `origin/${branch}`],
+    ['branch', '--set-upstream-to', `origin/${branch}`, branch],
   ]
   for (const args of steps) {
     const result = await run('git', args, {
