@@ -368,6 +368,18 @@ await check('panel renders its loading state before data arrives', () => {
   assert.match(markup, /role="region"/)
 })
 
+await check('diet card accepts a qq and the dictionary exposes the switcher label', () => {
+  const markup = renderToStaticMarkup(h(internals.DietCard, {
+    t: translator(internals.zh),
+    balance: {},
+    date: '2026-11-24',
+    qq: '1044949250',
+  }))
+  assert.match(markup, /当天饮食/)
+  assert.equal(internals.zh['diet.user'], '看谁')
+  assert.equal(internals.en['diet.user'], 'Whose')
+})
+
 await check('diet card renders its empty state', () => {
   const markup = renderToStaticMarkup(h(internals.DietCard, {
     t: translator(internals.zh),

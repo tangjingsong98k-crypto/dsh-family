@@ -43,6 +43,8 @@ window.__ModuleLoader__.load({
       'module.label': '子模块',
       'module.money': '收支',
       'module.diet': '饮食',
+      'diet.user': '看谁',
+      'diet.user.none': '还没有可切换的人',
       'month.prev': '上个月',
       'month.next': '下个月',
       'month.today': '今天',
@@ -162,6 +164,8 @@ window.__ModuleLoader__.load({
       'module.label': 'Sections',
       'module.money': 'Money',
       'module.diet': 'Meals',
+      'diet.user': 'Whose',
+      'diet.user.none': 'Nobody to switch to yet',
       'month.prev': 'Previous month',
       'month.next': 'Next month',
       'month.today': 'Today',
@@ -849,6 +853,9 @@ window.__ModuleLoader__.load({
 .bal-modules button{font:inherit;font-size:11px;line-height:18px;padding:2px 10px;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}
 .bal-modules button[data-active]{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font-weight:600}
 .bal-modules button:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary));outline-offset:1px}
+.bal-user{display:flex;align-items:center;gap:6px;align-self:flex-start;font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary)}
+.bal-user select{font:inherit;font-size:11px;line-height:18px;max-width:240px;padding:2px 6px;border-radius:6px;border:1px solid var(--dsw-alias-border-secondary);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
+.bal-user select:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary));outline-offset:1px}
 .bal-bars{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:2px}
 .bal-bar-group{display:flex;flex-direction:column;gap:2px;min-width:0;border-radius:4px}
 .bal-bar-group[data-current]{background:var(--dsw-alias-bg-layer-2)}
@@ -1470,7 +1477,7 @@ window.__ModuleLoader__.load({
      * @returns {object} React 元素
      */
     function DietCard(props) {
-      const { t, balance, date, onDietChange } = props
+      const { t, balance, date, onDietChange, qq } = props
       const [data, setData] = useState(null)
       const [error, setError] = useState('')
       const [busy, setBusy] = useState(false)
@@ -1487,7 +1494,7 @@ window.__ModuleLoader__.load({
         const current = ticket.current
         if (!quiet) setBusy(true)
         try {
-          const next = await balance.dietLoad(date)
+          const next = await balance.dietLoad(date, qq)
           if (current !== ticket.current) return
           setData(next)
           setError('')
@@ -1497,7 +1504,7 @@ window.__ModuleLoader__.load({
         } finally {
           if (current === ticket.current && !quiet) setBusy(false)
         }
-      }, [balance, date, t])
+      }, [balance, date, t, qq])
 
       useEffect(() => { void load(false) }, [load])
 
@@ -1587,10 +1594,10 @@ window.__ModuleLoader__.load({
         const grams = needGrams(newMeal.grams)
         if (grams === null) return
         void run(
-          () => balance.dietAddMeal(date, newMeal.type, name, grams),
+          () => balance.dietAddMeal(date, newMeal.type, name, grams, qq),
           t('diet.saved'),
         ).then(() => setNewMeal({ type: newMeal.type, name: '', grams: '' }))
-      }, [balance, date, needGrams, newMeal, run, t])
+      }, [balance, date, needGrams, newMeal, run, t, qq])
 
       const setDraft = useCallback((mealId, patch) => {
         setAdding(previous => ({
@@ -1712,6 +1719,8 @@ window.__ModuleLoader__.load({
       const [dietRevision, setDietRevision] = useState(0)
       const [kcalMonth, setKcalMonth] = useState(null)
       const [kcalYear, setKcalYear] = useState(null)
+      const [dietUsers, setDietUsers] = useState([])
+      const [dietQq, setDietQq] = useState('')
       const [chartError, setChartError] = useState('')
       const [chartRetry, setChartRetry] = useState(0)
       const [notice, setNotice] = useState('')
@@ -1760,8 +1769,8 @@ window.__ModuleLoader__.load({
         void (async () => {
           try {
             const [monthData, yearData] = await Promise.all([
-              balance.dietMonth(year, month),
-              balance.dietYear(year),
+              balance.dietMonth(year, month, dietQq),
+              balance.dietYear(year, dietQq),
             ])
             if (!cancelled) {
               setKcalMonth(monthData)
@@ -1772,7 +1781,30 @@ window.__ModuleLoader__.load({
           }
         })()
         return () => { cancelled = true }
-      }, [module, chartRetry, dietRevision, year, month, balance, t])
+      }, [module, chartRetry, dietRevision, year, month, balance, t, dietQq])
+
+      // 用户切换器：能切到谁，取决于容器（或家人电脑那份快照）里有哪些人。
+      useEffect(() => {
+        if (module !== 'diet') return undefined
+        let cancelled = false
+        void (async () => {
+          try {
+            const value = await balance.dietUsers()
+            if (cancelled) return
+            const list = Array.isArray(value?.users) ? value.users : []
+            const preferred = typeof value?.current === 'string' ? value.current : ''
+            setDietUsers(list)
+            setDietQq(previous => {
+              if (previous !== '' && list.some(user => user.qq === previous)) return previous
+              if (list.some(user => user.qq === preferred)) return preferred
+              return list[0]?.qq ?? ''
+            })
+          } catch {
+            // 切换器读失败不影响面板主体：下面照旧用默认 QQ 读数据。
+          }
+        })()
+        return () => { cancelled = true }
+      }, [module, balance])
 
       // 选中的日子变了：没在编辑时，表单日期跟着走。
       useEffect(() => {
@@ -2044,6 +2076,17 @@ window.__ModuleLoader__.load({
               'data-active': module === 'diet' ? '' : undefined,
               onClick: () => { setModule('diet') },
             }, t('module.diet'))),
+          module === 'diet' && dietUsers.length > 0
+            ? h('label', { className: 'bal-user' },
+              h('span', null, t('diet.user')),
+              h('select', {
+                className: 'bal-user-select',
+                value: dietQq,
+                disabled: busy,
+                onChange: event => { setDietQq(event.target.value) },
+              }, dietUsers.map(user => h('option', { key: user.qq, value: user.qq },
+                user.nickname ? `${user.nickname}（${user.qq}）` : String(user.qq)))))
+            : null,
           module === 'money'
             ? h('div', { className: 'bal-summary' },
               h('span', { className: 'bal-chip' }, t('summary.income'), h('b', null, `¥${money(yuan(monthSum.income))}`)),
@@ -2076,7 +2119,7 @@ window.__ModuleLoader__.load({
               onCancelDelete: () => { setPendingDelete('') },
             })
             : h(DietCard, {
-              t, balance, date: selected,
+              t, balance, date: selected, qq: dietQq,
               onDietChange: () => { setDietRevision(previous => previous + 1) },
             }),
           module === 'money'
@@ -2156,14 +2199,17 @@ window.__ModuleLoader__.load({
         load: year => call('load', year === undefined || year === null ? {} : { year }),
         save: entry => call('save', { entry }),
         remove: id => call('remove', { id }),
-        dietLoad: day => call('diet-load', { day }),
-        dietMonth: (year, month) => call('diet-month', { year, month }),
-        dietYear: year => call('diet-year', { year }),
+        dietUsers: () => call('diet-users', {}),
+        dietLoad: (day, qq) => call('diet-load', qq === undefined || qq === '' ? { day } : { day, qq }),
+        dietMonth: (year, month, qq) => call('diet-month', qq === undefined || qq === '' ? { year, month } : { year, month, qq }),
+        dietYear: (year, qq) => call('diet-year', qq === undefined || qq === '' ? { year } : { year, qq }),
         dietUpdateItem: (itemId, grams) => call('diet-update-item', { itemId, grams }),
         dietDeleteItem: itemId => call('diet-delete-item', { itemId }),
         dietAddItem: (mealId, name, grams) => call('diet-add-item', { mealId, name, grams }),
         dietDeleteMeal: mealId => call('diet-delete-meal', { mealId }),
-        dietAddMeal: (day, mealType, name, grams) => call('diet-add-meal', { day, mealType, name, grams }),
+        dietAddMeal: (day, mealType, name, grams, qq) => call('diet-add-meal', qq === undefined || qq === ''
+          ? { day, mealType, name, grams }
+          : { day, mealType, name, grams, qq }),
         dietReestimate: mealId => call('diet-reestimate', { mealId }),
       }
     }

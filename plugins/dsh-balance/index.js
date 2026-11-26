@@ -833,15 +833,54 @@ export function createDietAccess(rawConfig = {}) {
   const settings = rawConfig !== null && typeof rawConfig === 'object' ? rawConfig : {}
   const snapshot = typeof settings.dietSnapshot === 'string' ? settings.dietSnapshot.trim() : ''
   const qq = typeof settings.dietQq === 'string' && settings.dietQq.trim() !== '' ? settings.dietQq.trim() : DIET_QQ
-  if (snapshot === '') return { mode: 'docker', qq, readOnly: false, call: runDiet }
+  if (snapshot === '') {
+    return {
+      mode: 'docker',
+      qq,
+      readOnly: false,
+      call: runDiet,
+      /** 容器里有资料或有记录的人，面板拿来画切换器。 */
+      listUsers: async () => {
+        const value = await runDiet({ cmd: 'users' })
+        return Array.isArray(value?.users) ? value.users : []
+      },
+    }
+  }
   const snapshotPath = path.resolve(snapshot)
   return {
     mode: 'snapshot',
     qq,
     readOnly: true,
     snapshotPath,
-    call: command => readDietSnapshot(snapshotPath, qq, command),
+    call: command => readDietSnapshot(
+      snapshotPath,
+      command !== null && typeof command === 'object' && typeof command.qq === 'string' && command.qq.trim() !== ''
+        ? command.qq.trim()
+        : qq,
+      command,
+    ),
+    listUsers: () => readSnapshotUsers(snapshotPath),
   }
+}
+
+/**
+ * 读快照里的用户列表（快照模式下没有容器，切换器只能列快照里的人）。
+ * @param {string} snapshotPath - 快照路径
+ * @returns {Promise<Array<{ qq: string, nickname: string, target: number, days: number }>>} 用户
+ */
+export async function readSnapshotUsers(snapshotPath) {
+  const doc = await readDietSnapshotFile(snapshotPath)
+  const users = doc.users !== null && typeof doc.users === 'object' ? doc.users : {}
+  return Object.keys(users).map((qq) => {
+    const user = users[qq] !== null && typeof users[qq] === 'object' ? users[qq] : {}
+    const days = user.days !== null && typeof user.days === 'object' ? Object.keys(user.days) : []
+    return {
+      qq,
+      nickname: typeof user.nickname === 'string' ? user.nickname : '',
+      target: Number(user.target) || 0,
+      days: days.length,
+    }
+  })
 }
 
 /**
@@ -1013,7 +1052,16 @@ export async function readDietSnapshot(snapshotPath, qq, command) {
  * 默认数据源：主电脑直连容器（保持原有行为）。
  * @type {{ mode: string, qq: string, readOnly: boolean, call: (command: object) => Promise<any> }}
  */
-const DOCKER_DIET = { mode: 'docker', qq: DIET_QQ, readOnly: false, call: runDiet }
+const DOCKER_DIET = {
+  mode: 'docker',
+  qq: DIET_QQ,
+  readOnly: false,
+  call: runDiet,
+  listUsers: async () => {
+    const value = await runDiet({ cmd: 'users' })
+    return Array.isArray(value?.users) ? value.users : []
+  },
+}
 
 /**
  * 把一句话交给 DSH 的同步回合接口（xixi 桥），等它的完整回答。
@@ -1112,6 +1160,12 @@ export async function handleRpc(ledger, endpoint, payload, diet = DOCKER_DIET) {
   const requireDietWritable = () => {
     if (dietOf.readOnly) fail('balance/diet-readonly', READONLY_MESSAGE)
   }
+  /**
+   * 这次请求看谁：面板可以用 `qq` 临时指定（用户切换器），没给就用配置里的默认。
+   * @param {unknown} value - 请求里的 qq
+   * @returns {string} QQ
+   */
+  const pickQq = value => (typeof value === 'string' && value.trim() !== '' ? value.trim() : dietOf.qq)
   try {
     switch (endpoint) {
       case 'load':
@@ -1124,12 +1178,20 @@ export async function handleRpc(ledger, endpoint, payload, diet = DOCKER_DIET) {
         return { ok: true, value: await ledger.summary(input) }
       case 'info':
         return { ok: true, value: await ledger.info() }
+      case 'diet-users':
+        return {
+          ok: true,
+          value: {
+            users: typeof dietOf.listUsers === 'function' ? await dietOf.listUsers() : [],
+            current: dietOf.qq,
+          },
+        }
       case 'diet-load':
-        return { ok: true, value: await dietOf.call({ cmd: 'day', qq: dietOf.qq, day: input.day }) }
+        return { ok: true, value: await dietOf.call({ cmd: 'day', qq: pickQq(input.qq), day: input.day }) }
       case 'diet-month':
-        return { ok: true, value: await dietOf.call({ cmd: 'month', qq: dietOf.qq, year: input.year, month: input.month }) }
+        return { ok: true, value: await dietOf.call({ cmd: 'month', qq: pickQq(input.qq), year: input.year, month: input.month }) }
       case 'diet-year':
-        return { ok: true, value: await dietOf.call({ cmd: 'year', qq: dietOf.qq, year: input.year }) }
+        return { ok: true, value: await dietOf.call({ cmd: 'year', qq: pickQq(input.qq), year: input.year }) }
       case 'diet-update-item':
         requireDietWritable()
         return { ok: true, value: await dietOf.call({ cmd: 'update_item', item_id: input.itemId, grams: input.grams }) }
@@ -1148,7 +1210,7 @@ export async function handleRpc(ledger, endpoint, payload, diet = DOCKER_DIET) {
           ok: true,
           value: await dietOf.call({
             cmd: 'add_meal',
-            qq: dietOf.qq,
+            qq: pickQq(input.qq),
             day: input.day,
             meal_type: input.mealType,
             name: input.name,
@@ -1489,6 +1551,7 @@ export const internals = {
   createLedger,
   createDietAccess,
   readDietSnapshot,
+  readSnapshotUsers,
   dayFromSnapshot,
   monthFromSnapshot,
   yearFromSnapshot,

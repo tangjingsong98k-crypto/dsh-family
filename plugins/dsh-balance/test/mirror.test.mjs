@@ -220,6 +220,35 @@ await check('RPC 快照里 month/year 也能走通', async () => {
   assert.equal(year.value.months.length, 12)
 })
 
+await check('快照里能列出可切换的人', async () => {
+  const users = await internals.readSnapshotUsers(snapshotPath)
+  assert.deepEqual(users.map(user => user.qq).sort(), ['1044949250', '99132013'])
+  const owner = users.find(user => user.qq === '99132013')
+  assert.equal(owner.target, 1800)
+  assert.equal(owner.days, 2)
+})
+
+await check('diet-users 端点返回列表和当前 QQ', async () => {
+  const ledger = createLedger({ root, readOnly: true })
+  const diet = createDietAccess({ dietSnapshot: snapshotPath, dietQq: '99132013' })
+  const result = await handleRpc(ledger, 'diet-users', {}, diet)
+  assert.equal(result.ok, true)
+  assert.equal(result.value.current, '99132013')
+  assert.equal(result.value.users.length, 2)
+})
+
+await check('请求里的 qq 可以临时切到另一个人', async () => {
+  const ledger = createLedger({ root, readOnly: true })
+  const diet = createDietAccess({ dietSnapshot: snapshotPath, dietQq: '99132013' })
+  const day = await handleRpc(ledger, 'diet-load', { day: '2026-11-26', qq: '1044949250' }, diet)
+  assert.equal(day.ok, true)
+  assert.equal(day.value.qq, '1044949250')
+  assert.equal(day.value.target, 2000)
+  const month = await handleRpc(ledger, 'diet-month', { year: 2026, month: 11, qq: '1044949250' }, diet)
+  assert.equal(month.ok, true)
+  assert.equal(month.value.days['2026-11-26'], 600)
+})
+
 for (const dir of dirs) await fs.rm(dir, { recursive: true, force: true })
 
 console.log(`\n${passed} checks passed`)
