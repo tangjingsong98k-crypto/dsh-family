@@ -91,6 +91,56 @@ function pickApiKey(flags, local) {
 }
 
 /**
+ * 装之前先把仓库接上：包里带 `.git` 时什么都不用做；只带了文件（没有远端的包，
+ * 或者用户自己拷的目录）时，在这里 init + fetch + reset，把它变成能 pull 的克隆。
+ *
+ * @param {object} local - 本地配置（remote / branch）
+ * @param {object} mirror - 套件清单
+ * @param {Function} logger - log 函数
+ * @returns {Promise<string>} 说明
+ */
+async function ensureGitRepo(local, mirror, logger) {
+  const remote = typeof local.remote === 'string' ? local.remote.trim() : ''
+  if (remote === '') return '没有配置远端，跳过仓库初始化'
+  const version = await run('git', ['--version'], { timeoutMs: 15000 })
+  if (version.code !== 0) return '这台机器没有 git，跳过仓库初始化'
+  if (await pathExists(path.join(PATHS.kit, '.git'))) return '已经是 git 仓库'
+  await logger('install', '没有 .git：初始化仓库并拉取远端')
+  const steps = [
+    ['init'],
+    ['remote', 'add', 'origin', remote],
+    ['fetch', '--quiet', 'origin', mirror.git.branch],
+    ['reset', '--hard', `origin/${mirror.git.branch}`],
+    ['branch', `--set-upstream-to=origin/${mirror.git.branch}`, mirror.git.branch],
+  ]
+  for (const args of steps) {
+    const result = await run('git', args, {
+      cwd: PATHS.kit,
+      timeoutMs: 300000,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    })
+    if (result.code !== 0) {
+      return `仓库初始化失败（git ${args[0]}）：${(result.stderr || result.stdout).trim().split(/\r?\n/).slice(-2).join(' ')}`
+    }
+  }
+  return '仓库已接上'
+}
+
+/**
+ * 路径是否存在。
+ * @param {string} file - 路径
+ * @returns {Promise<boolean>} 存在与否
+ */
+async function pathExists(file) {
+  try {
+    await fs.access(file)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
  * 主流程。
  * @returns {Promise<number>} 退出码
  */
@@ -119,6 +169,9 @@ async function main() {
   }
 
   await writeLaunchers(process.execPath)
+
+  const mirror = JSON.parse(await readText(PATHS.mirror))
+  await log('install', await ensureGitRepo(local, mirror, log))
 
   const applied = await apply()
   await log('install', applied.changed ? `装配完成：${applied.reasons.join('；')}` : '装配完成：已经是最新')
