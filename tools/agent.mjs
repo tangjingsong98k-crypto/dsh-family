@@ -35,6 +35,19 @@ import {
 } from './common.mjs'
 import { apply } from './apply.mjs'
 import { serverStatus, startServer, stopServer } from './server.mjs'
+import {
+  enterSafeMode,
+  hasLastGood,
+  markNormal,
+  readFailures,
+  readHold,
+  readSafety,
+  restoreLastGood,
+  saveLastGood,
+  waitBoot,
+  writeFailures,
+  writeHold,
+} from './safety.mjs'
 
 /**
  * 确保 origin 指向配置里的远端。
@@ -98,6 +111,35 @@ async function runOp(op, mirror) {
       await sleep(1500)
       const started = await startServer(mirror, { force: true })
       return { ok: true, stopped, started }
+    }
+    case 'safe-mode': {
+      const on = args.on === true
+      if (on) {
+        await enterSafeMode({ profileName: mirror.profile.name })
+      } else {
+        await markNormal()
+        await writeHold({ cleared: true, at: isoNow() })
+      }
+      await stopServer(port)
+      await sleep(1200)
+      if (!on) await apply({ force: true })
+      const started = await startServer(mirror, { force: true })
+      return { ok: true, safeMode: on, url: started.url }
+    }
+    case 'rollback': {
+      const probe = await apply({ check: true })
+      const restored = await restoreLastGood({ profileName: mirror.profile.name })
+      if (!restored.ok) return { ok: false, error: restored.reason ?? '没有可回滚的快照' }
+      await writeHold({
+        fingerprint: probe.fingerprint ?? '',
+        at: isoNow(),
+        reason: '主电脑人工回滚',
+      })
+      await stopServer(port)
+      await sleep(1200)
+      const started = await startServer(mirror, { force: true })
+      const up = await waitBoot(port, Number(mirror.safety?.bootTimeoutSec) || 75)
+      return { ok: up, version: restored.version, url: started.url, booted: up }
     }
     case 'apply': {
       const result = await apply()
@@ -228,19 +270,67 @@ export async function once({ quiet = false } = {}) {
   }
 
   let restarted = false
+  let recovered = ''
+  let rolledBack = false
+  let bootFailures = (await readFailures()).count
   const before = await serverStatus(port)
   if (applied.changed || !before.running || !before.ours) {
     const started = await startServer(mirror, { force: before.running && applied.changed })
     restarted = started.started
-    if (started.url === '') errors.push('服务器没有给出登录链接')
-    await log('agent', restarted ? 'DSH 已启动/重启' : 'DSH 已在运行')
+    const timeout = Number(mirror.safety?.bootTimeoutSec) || 75
+    const up = await waitBoot(port, timeout)
+    if (up) {
+      bootFailures = 0
+      await writeFailures(0)
+      await saveLastGood({ profileName: mirror.profile.name })
+      if (started.url === '') errors.push('服务器没有给出登录链接')
+    } else {
+      bootFailures += 1
+      await writeFailures(bootFailures)
+      await log('agent', `启动失败（第 ${bootFailures} 次），开始自救`)
+      const restored = await restoreLastGood({ profileName: mirror.profile.name })
+      if (restored.ok) {
+        await stopServer(port)
+        await startServer(mirror, { force: true })
+        if (await waitBoot(port, timeout)) {
+          await writeHold({
+            fingerprint: applied.fingerprint ?? '',
+            at: isoNow(),
+            reason: '启动失败，已回滚到上次好使的配置',
+          })
+          rolledBack = true
+          recovered = `已回滚到 ${restored.version || '上次好使的配置'}`
+        }
+      }
+      if (recovered === '') {
+        const safeOk = await enterSafeMode({ profileName: mirror.profile.name })
+        if (safeOk) {
+          await stopServer(port)
+          await startServer(mirror, { force: true })
+          if (await waitBoot(port, timeout)) recovered = '已进入安全模式'
+        }
+      }
+      if (recovered === '') errors.push('启动失败，回滚与安全模式都没能起来')
+      else await log('agent', recovered)
+    }
+    await log('agent', recovered !== '' ? recovered : (restarted ? 'DSH 已启动/重启' : 'DSH 已在运行'))
+  } else if (!(await hasLastGood())) {
+    // 一直在跑但从没存过快照（老机器升级上来的）：补一张，回滚才有得用。
+    await saveLastGood({ profileName: mirror.profile.name })
   }
 
   const ops = await drainOps(mirror)
   const after = await serverStatus(port)
+  if (!rolledBack && after.running && bootFailures > 0) {
+    // 这一轮没出事、服务也确实在跑：把历史失败计数清掉。
+    bootFailures = 0
+    await writeFailures(0)
+  }
   const version = await installedDshVersion()
   const data = await dataSummary()
   const state = await readJson(PATHS.state, {})
+  const safety = await readSafety()
+  const holdNow = await readHold()
   const commit = (await git(['rev-parse', '--short', 'HEAD'])).stdout.trim()
   const dirty = (await git(['status', '--porcelain'])).stdout.trim() !== ''
 
@@ -257,6 +347,11 @@ export async function once({ quiet = false } = {}) {
     appliedAt: (await readJson(PATHS.state, {})).appliedAt ?? '',
     dietQq: typeof state.dietQq === 'string' ? state.dietQq : '',
     applied: applied.reasons,
+    held: rolledBack || (holdNow !== null && holdNow.cleared !== true),
+    safeMode: safety.mode === 'safe',
+    bootFailures,
+    lastGoodAt: typeof safety.lastGoodAt === 'string' ? safety.lastGoodAt : '',
+    recovered,
     restarted,
     ops: ops.map(op => ({ id: op.id, action: op.action, ok: op.ok === true })),
     data,

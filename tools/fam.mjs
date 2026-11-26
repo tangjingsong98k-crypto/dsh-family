@@ -142,6 +142,10 @@ async function showStatus() {
     console.log(`  饮食看着   ${status.dietQq || '(仓库默认)'}${(status.data?.dietUsers ?? []).length > 0 ? `；快照里还有 ${(status.data.dietUsers).join(', ')}` : '；快照是空的'}`)
     console.log(`  账本/饮食  ${status.data?.ledgerCount ?? 0} 笔 / ${(status.data?.dietUsers ?? []).join(', ') || '无'}`)
     console.log(`  仓库       ${status.repo?.commit ?? '?'}${status.repo?.dirty ? '（有未提交改动）' : ''}；${status.repo?.sync ?? ''}`)
+    if (status.safeMode) console.log('  安全模式   是（只剩官方 bundle，第三方插件全不加载）')
+    if (status.held) console.log(`  已冻结     ${status.recovered || '上次启动失败已回滚，等下一次改动'}`)
+    if (status.lastGoodAt) console.log(`  上次好使   ${status.lastGoodAt}`)
+    if (Number(status.bootFailures) > 0) console.log(`  连续失败   ${status.bootFailures} 次`)
     if (Array.isArray(status.applied) && status.applied.length > 0) console.log(`  最近应用   ${status.applied.join('；')}`)
     if (Array.isArray(status.errors) && status.errors.length > 0) console.log(`  错误       ${status.errors.join('；')}`)
     if (Array.isArray(status.logTail) && status.logTail.length > 0) console.log(`  日志尾巴   ${status.logTail.slice(-3).join(' / ')}`)
@@ -313,12 +317,26 @@ async function main() {  const { _, flags } = parseArgs(process.argv.slice(2))
       }
       return
     }
+    case 'safe-mode': {
+      const state = (_[1] ?? '').toLowerCase()
+      if (!['on', 'off'].includes(state)) {
+        console.log('用法：fam.mjs safe-mode on|off')
+        return
+      }
+      const result = await enqueue('safe-mode', { on: state === 'on' })
+      console.log(JSON.stringify(result, null, 2))
+      return
+    }
+    case 'rollback': {
+      const result = await enqueue('rollback', {})
+      console.log(JSON.stringify(result, null, 2))
+      return
+    }
     case 'restart':
     case 'apply':
     case 'diagnose':
     case 'logs':
-    case 'shell': {
-      const args = {}
+    case 'shell': {      const args = {}
       if (command === 'logs') args.lines = Number(flags.lines) > 0 ? Number(flags.lines) : 60
       if (command === 'shell') args.command = _.slice(1).join(' ')
       const result = await enqueue(command, args, { to: typeof flags.to === 'string' ? flags.to : '' })
@@ -390,7 +408,7 @@ async function main() {  const { _, flags } = parseArgs(process.argv.slice(2))
       return
     }
     default:
-      console.log('命令：status | data | push | version <v> | plugin <名> on|off | restart | apply | diagnose | logs [--lines n] | shell "<命令>" | ops | remote <url> | init | pack [--qq <QQ>] | install-publish-task | install-agent-tasks')
+      console.log('命令：status | data | push | version <v> | plugin <名> on|off | restart | rollback | safe-mode on|off | apply | diagnose | logs [--lines n] | shell "<命令>" | ops | remote <url> | init | pack [--qq <QQ>] | install-publish-task | install-agent-tasks')
       console.log('远程指令可加 --to <主机名>（或 --to *）指定哪台机器执行；不带就是所有机器都执行。')
   }
 }

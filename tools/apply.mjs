@@ -28,6 +28,13 @@ import {
   writeText,
 } from './common.mjs'
 import { renderLocalStats } from './render-stats.mjs'
+import {
+  configFingerprint,
+  markNormal,
+  readHold,
+  readSafety,
+  writeHold,
+} from './safety.mjs'
 
 /**
  * 读一个文件的文本，不存在返回空串。
@@ -154,12 +161,44 @@ function renderPatch(template, mirror, dietQq) {
  * @param {object} options - `{ check }`
  * @returns {Promise<{ changed: boolean, versionChanged: boolean, reasons: string[] }>} 结果
  */
-export async function apply({ check = false } = {}) {
+export async function apply({ check = false, force = false } = {}) {
   const mirror = await loadMirror()
   const reasons = []
   let versionChanged = false
 
   await ensureDirs(PATHS.runtime, PATHS.home, PATHS.work, PATHS.logs, PATHS.data, PATHS.status, PATHS.ops)
+
+  const profileDir = path.join(PATHS.home, 'profiles', mirror.profile.name)
+  await ensureDirs(profileDir)
+  const manifest = profileManifest(mirror)
+  const manifestText = `${JSON.stringify(manifest, null, 2)}\n`
+  const template = await readText(PATHS.profileTemplate)
+  if (template === '') throw new Error(`缺少补丁模板：${PATHS.profileTemplate}`)
+  // 每台设备看谁的饮食是「设备本地」的事：config.local.json 的 dietQq 优先，
+  // 没配才用仓库里的全局默认（mirror.json.data.dietQq）。
+  const local = await readJson(PATHS.localConfig, {})
+  const dietQq = typeof local.dietQq === 'string' && local.dietQq.trim() !== ''
+    ? local.dietQq.trim()
+    : String(mirror.data.dietQq)
+  const patchText = renderPatch(template, mirror, dietQq)
+  const fingerprint = configFingerprint(manifestText, patchText)
+
+  // 安全网：回滚过的配置不再原地重试；安全模式下不自动把第三方插件装回来。
+  const hold = await readHold()
+  const safety = await readSafety()
+  if (!check) {
+    if (force) {
+      await writeHold({ cleared: true, at: new Date().toISOString() })
+      await markNormal()
+    } else if (safety.mode === 'safe') {
+      return { changed: false, held: true, safeMode: true, fingerprint, reasons: ['处于安全模式，等主电脑处理'] }
+    } else if (hold !== null && hold.cleared !== true && hold.fingerprint === fingerprint) {
+      return { changed: false, held: true, fingerprint, reasons: [`上次启动失败已回滚：${hold.reason ?? ''}`] }
+    } else if (hold !== null && hold.cleared !== true) {
+      // 主电脑换了配置：这是新的一次尝试，清掉 hold。
+      await writeHold({ cleared: true, at: new Date().toISOString() })
+    }
+  }
 
   const currentVersion = await installedDshVersion()
   if (currentVersion !== mirror.dsh.version) {
@@ -171,10 +210,6 @@ export async function apply({ check = false } = {}) {
     }
   }
 
-  const profileDir = path.join(PATHS.home, 'profiles', mirror.profile.name)
-  await ensureDirs(profileDir)
-  const manifest = profileManifest(mirror)
-  const manifestText = `${JSON.stringify(manifest, null, 2)}\n`
   const manifestFile = path.join(profileDir, 'package.json')
   const manifestBefore = await textOf(manifestFile)
   if (manifestBefore !== manifestText) {
@@ -195,16 +230,7 @@ export async function apply({ check = false } = {}) {
     if (!check) await writeText(workspaceFile, workspaceText)
   }
 
-  const template = await readText(PATHS.profileTemplate)
-  if (template === '') throw new Error(`缺少补丁模板：${PATHS.profileTemplate}`)
-  // 每台设备看谁的饮食是「设备本地」的事：config.local.json 的 dietQq 优先，
-  // 没配才用仓库里的全局默认（mirror.json.data.dietQq）。
-  const local = await readJson(PATHS.localConfig, {})
-  const dietQq = typeof local.dietQq === 'string' && local.dietQq.trim() !== ''
-    ? local.dietQq.trim()
-    : String(mirror.data.dietQq)
   const patchFile = path.join(profileDir, 'cordis.patch.yml')
-  const patchText = renderPatch(template, mirror, dietQq)
   const patchBefore = await textOf(patchFile)
   if (patchBefore !== patchText) {
     reasons.push('cordis.patch.yml 有变化')
@@ -263,7 +289,7 @@ export async function apply({ check = false } = {}) {
     })
   }
 
-  return { changed: reasons.length > 0, versionChanged, reasons }
+  return { changed: reasons.length > 0, versionChanged, reasons, fingerprint, held: false, safeMode: false }
 }
 
 /**

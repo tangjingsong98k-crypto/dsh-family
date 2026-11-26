@@ -31,6 +31,10 @@ export const PATHS = {
   home: path.join(KIT_ROOT, 'runtime', 'home'),
   work: path.join(KIT_ROOT, 'runtime', 'work'),
   state: path.join(KIT_ROOT, 'runtime', 'state.json'),
+  lastGood: path.join(KIT_ROOT, 'runtime', 'last-good'),
+  hold: path.join(KIT_ROOT, 'runtime', 'hold.json'),
+  safety: path.join(KIT_ROOT, 'runtime', 'safety.json'),
+  failures: path.join(KIT_ROOT, 'runtime', 'boot-failures.json'),
   loginUrl: path.join(KIT_ROOT, 'runtime', 'login-url.txt'),
   pidFile: path.join(KIT_ROOT, 'runtime', 'dsh.pid'),
   nodePath: path.join(KIT_ROOT, 'runtime', 'node-path.txt'),
@@ -440,6 +444,14 @@ export function processAlive(pid) {
   } catch (error) {
     return error !== null && typeof error === 'object' && error.code === 'EPERM'
   }
+}
+
+/**
+ * 当前 node 自带的 npm-cli.js（不依赖 PATH 上的 npm.cmd）。
+ * @returns {string} 路径
+ */
+export function npmCliPath() {
+  return path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js')
 }
 
 /**

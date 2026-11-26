@@ -27,6 +27,11 @@
     "intervalMinutes": 2,
     "keepLogLines": 40
   },
+  "safety": {
+    "bootTimeoutSec": 75,
+    "autoRollback": true,
+    "note": "改版本/插件后起服务并等应答；起不来就回滚到上次好使的配置，再不行就进安全模式（只用官方 bundle），保证界面能打开。"
+  },
   "plugins": [
     {
       "name": "@local/dsh-balance",

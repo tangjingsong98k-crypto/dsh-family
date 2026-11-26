@@ -48,6 +48,7 @@ family-kit\
     apply.mjs               ← 把 mirror.json 落到机器上（钉版本 + pnpm + 补丁层）
     agent.mjs               ← 家人电脑每 2 分钟收敛一次（拉取/应用/看进程/跑指令/报状态）
     server.mjs start.mjs    ← DSH 进程启停 + 抓登录 token
+    safety.mjs              ← 启动验证 / 自动回滚 / 安全模式（防插件或版本把人挡在门外）
     publish.mjs             ← 本机发布器：账本 + 饮食快照 + 统计页 + 插件源码
     stats.mjs               ← 统计口径与 HTML 渲染
     diet-dump.py            ← 在 AstrBot 容器里跑，只读 diet.db 导快照
@@ -287,6 +288,47 @@ node tools\fam.mjs data
 - **远端凭据**：每台的 `pack` 包里带着同一个 PAT，等于每台都能读写这个仓库；
   哪台不用了，把它的 `config.local.json` 删掉或换 PAT 即可。
 
+### 3.7 防坏：启动验证、自动回滚、安全模式
+
+给不会用电脑的人维护，最怕的是「改完打不开了」。这一层是自动的，不用他做任何事：
+
+1. **先存好使的**：每次启动成功（HTTP 200/401）后，把 profile 的
+   `package.json` / `cordis.yml` / `cordis.patch.yml` / `pnpm-workspace.yaml` 和当前
+   DSH 版本存进 `runtime/last-good/`。
+2. **改完必须真的起来**：改版本或插件后，agent 起服务并等 `mirror.json` 里
+   `safety.bootTimeoutSec`（默认 75 秒）；这期间没有应答就算失败。
+3. **失败就回滚**：把 `last-good` 的四个文件写回去、必要时装回上个版本、重启、再等一次。
+   成功则写 `runtime/hold.json`：同一个配置指纹不再重试（不会每两分钟重启循环），
+   状态里 `held: true`。
+4. **还起不来就进安全模式**：profile 只剩 `@deepseek-ai/dsh-base` + `@deepseek-ai/dsh-web-app`，
+   第三方插件一个不加载，保证界面能打开；状态里 `safeMode: true`。
+
+主电脑这边：
+
+```powershell
+node tools\fam.mjs status              # 会显示：安全模式 / 已冻结 / 上次好使 / 连续失败
+node tools\fam.mjs rollback            # 人工回滚到上次好使的配置
+node tools\fam.mjs safe-mode on        # 强制进安全模式（怀疑某个插件时）
+node tools\fam.mjs safe-mode off       # 退出安全模式，按 mirror.json 重新装回来
+node tools\fam.mjs apply               # 清掉 hold，强制再试一次当前配置
+```
+
+配置在 `mirror.json`：
+
+```json
+"safety": { "bootTimeoutSec": 75, "autoRollback": true }
+```
+
+回滚/安全模式都是**本机状态**，不会污染仓库；主电脑下一次改 `mirror.json`
+（指纹变了）会自动解除冻结，重新尝试新配置。
+
+### 3.8 换版本的稳妥顺序（给朋友那台）
+
+1. 先在本机或一台测试机上装同版本（`tools/fam.mjs smoke` 没做，用 `install.cmd --no-tasks` 到一个空目录即可）；
+2. `fam.mjs version <新版本>` → 等他那台 status 里 `dshVersion` 变过来；
+3. 打开看一眼生活面板；
+4. 有问题 `fam.mjs rollback`，两分钟内回到上一版。
+
 ---
 
 ## 4. 数据是怎么到家人电脑上的
@@ -398,6 +440,14 @@ node tools\fam.mjs pack --qq 99132013
 
 **面板里点「记下」没反应 / 提示只读**
 正常的，见 4.5。
+
+**他那台打不开了 / 界面空白**
+先 `fam.mjs status` 看两个字段：
+`safeMode: true` ＝ 已经自动降级成官方 bundle（界面能开，第三方插件没加载），
+用 `fam.mjs logs` 看是谁的问题，修好后 `fam.mjs safe-mode off`；
+`held: true` ＝ 上次改动启动失败、已自动回滚到上次好使的配置，
+`fam.mjs rollback` 可手动再回滚一次，`fam.mjs apply` 会清掉冻结、按当前
+`mirror.json` 再试一遍。两种情况都不需要他动手。
 
 **`fam.mjs status` 里一直是旧的**
 按顺序查三段：本机 `DSHFamilyPublish` 任务在不在跑（`schtasks /Query /TN DSHFamilyPublish`）→
