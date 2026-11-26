@@ -32,6 +32,8 @@ export const PATHS = {
   work: path.join(KIT_ROOT, 'runtime', 'work'),
   state: path.join(KIT_ROOT, 'runtime', 'state.json'),
   lastGood: path.join(KIT_ROOT, 'runtime', 'last-good'),
+  canary: path.join(KIT_ROOT, 'runtime', 'canary'),
+  canaryResult: path.join(KIT_ROOT, 'runtime', 'canary', 'result.json'),
   hold: path.join(KIT_ROOT, 'runtime', 'hold.json'),
   safety: path.join(KIT_ROOT, 'runtime', 'safety.json'),
   failures: path.join(KIT_ROOT, 'runtime', 'boot-failures.json'),
@@ -293,6 +295,20 @@ export async function resolveRemote(mirror) {
 export async function installedDshVersion() {
   try {
     const pkg = await readJson(PATHS.installedPackage)
+    return typeof pkg.version === 'string' ? pkg.version : ''
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * 读某个安装树里的 DSH 版本。
+ * @param {string} appDir - 安装目录（含 node_modules/@deepseek-ai/dsh）
+ * @returns {Promise<string>} 版本；没装返回空串
+ */
+export async function installedVersionAt(appDir) {
+  try {
+    const pkg = await readJson(path.join(appDir, 'node_modules', '@deepseek-ai', 'dsh', 'package.json'))
     return typeof pkg.version === 'string' ? pkg.version : ''
   } catch {
     return ''

@@ -32,6 +32,12 @@
     "autoRollback": true,
     "note": "改版本/插件后起服务并等应答；起不来就回滚到上次好使的配置，再不行就进安全模式（只用官方 bundle），保证界面能打开。"
   },
+  "canary": {
+    "enabled": true,
+    "port": 38091,
+    "timeoutSec": 120,
+    "note": "任何改动先装进 runtime/canary 这个独立实例跑一遍（独立 node_modules / DSH_HOME / 端口），通过了才应用到正在用的那份。"
+  },
   "plugins": [
     {
       "name": "@local/dsh-balance",

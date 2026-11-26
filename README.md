@@ -329,6 +329,31 @@ node tools\fam.mjs apply               # 清掉 hold，强制再试一次当前�
 3. 打开看一眼生活面板；
 4. 有问题 `fam.mjs rollback`，两分钟内回到上一版。
 
+### 3.9 金丝雀：先在第二实例上试，通过了才装
+
+`tools/canary.mjs` 在 `runtime/canary/` 里养了一个**完全独立的第二实例**：自己的
+`app`（独立 node_modules）、自己的 `home`（独立 DSH_HOME）、自己的端口（默认在用端口 +1）。
+agent 每轮先算「这轮要不要改」：
+
+```
+计划有变化？
+  ├─ 没有 → 什么都不做
+  └─ 有 → 金丝雀：装目标版本 → 装同一份 profile → --dump-config → 起一次 → 等应答
+           ├─ 通过 → 才 apply() 到正在用的那份 → 重启 → 再验证（失败还有回滚兜底）
+           └─ 失败 → 冻结（hold），正在用的那份一个字节都没动，status 写明失败在哪一步
+```
+
+配置：
+
+```json
+"canary": { "enabled": true, "port": 38091, "timeoutSec": 120 }
+```
+
+- 第一次跑金丝雀要下目标版本（约 1 分钟、多占约 700MB 磁盘）；之后同一版本只跑启动验证；
+- 想跳过（比如机器空间紧张）：`"enabled": false`；
+- 手动跑一次：`node tools\fam.mjs canary`（排队给那台执行，返回 JSON）；
+- `fam.mjs status` 里的 `金丝雀` 一行就是最近一次结果（通过/失败、版本、失败阶段、原因）。
+
 ---
 
 ## 4. 数据是怎么到家人电脑上的

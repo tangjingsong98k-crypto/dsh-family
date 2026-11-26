@@ -18,6 +18,7 @@ import {
   PATHS,
   ensureDirs,
   installedDshVersion,
+  installedVersionAt,
   loadMirror,
   log,
   readJson,
@@ -67,9 +68,9 @@ function npmCli() {
  * @param {string} current - 已安装版本（空串表示没装）
  * @returns {Promise<boolean>} 是否装上
  */
-async function installDsh(mirror, current) {
-  await ensureDirs(PATHS.app)
-  await writeJson(path.join(PATHS.app, 'package.json'), {
+export async function installDsh(mirror, current, appDir = PATHS.app) {
+  await ensureDirs(appDir)
+  await writeJson(path.join(appDir, 'package.json'), {
     name: 'dsh-family-app',
     private: true,
     version: '0.0.0',
@@ -93,13 +94,13 @@ async function installDsh(mirror, current) {
   for (const registry of registries) {
     await log('apply', `  registry: ${registry}`)
     const result = await run(process.execPath, [...baseArgs, `--registry=${registry}`], {
-      cwd: PATHS.app,
+      cwd: appDir,
       timeoutMs: 10 * 60 * 1000,
       // 这台机器上 IPv6 通一半：npm 会连上一堆 IPv6 socket 然后停在原地不动。
       // 强制 DNS 先给 IPv4，实测能把「卡十分钟」变回「一两分钟」。
       env: { ...process.env, NODE_OPTIONS: withIpv4First(process.env.NODE_OPTIONS) },
     })
-    const installed = await installedDshVersion()
+    const installed = await installedVersionAt(appDir)
     if (result.code === 0 && installed === mirror.dsh.version) return true
     const detail = (result.stderr || result.stdout).trim().split(/\r?\n/).slice(-4).join(' | ')
     await log('apply', `  失败（exit ${result.code}，装在 ${installed || '空'}）：${detail}`)
@@ -123,7 +124,7 @@ function withIpv4First(current) {
  * @param {object} mirror - 配置
  * @returns {object} 清单
  */
-function profileManifest(mirror) {
+export function profileManifest(mirror) {
   const dependencies = {}
   const bundles = ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app']
   for (const plugin of mirror.plugins) {
@@ -146,7 +147,7 @@ function profileManifest(mirror) {
  * @param {string} dietQq - 这台设备该看谁的饮食（设备本地配置优先）
  * @returns {string} 渲染结果
  */
-function renderPatch(template, mirror, dietQq) {
+export function renderPatch(template, mirror, dietQq) {
   const kit = KIT_ROOT.replace(/\\/g, '/')
   const data = PATHS.data.replace(/\\/g, '/')
   return template
@@ -154,6 +155,31 @@ function renderPatch(template, mirror, dietQq) {
     .split('{{DATA}}').join(data)
     .split('{{DIET_QQ}}').join(String(dietQq))
     .split('{{KEEP_DAYS}}').join(String(mirror.data.keepDays))
+}
+
+/**
+ * 在某个安装树 + 某个 DSH_HOME 上跑 pnpm install（主实例和金丝雀共用）。
+ * @param {string} profileName - profile 名
+ * @param {object} [options] - `{ appDir, homeDir }`
+ * @returns {Promise<boolean>} 成功与否
+ */
+export async function installProfileDeps(profileName, { appDir = PATHS.app, homeDir = PATHS.home } = {}) {
+  const bin = path.join(appDir, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
+  await log('apply', `pnpm 安装 profile 依赖（${appDir}）`)
+  const result = await run(process.execPath, [bin, 'plugin', '--profile', profileName, 'install'], {
+    cwd: appDir,
+    env: {
+      ...process.env,
+      DSH_HOME: homeDir,
+      NODE_OPTIONS: withIpv4First(process.env.NODE_OPTIONS),
+    },
+    timeoutMs: 20 * 60 * 1000,
+  })
+  if (result.code !== 0) {
+    await log('apply', `pnpm install 失败（exit ${result.code}）：${(result.stderr || result.stdout).slice(-1500)}`)
+    return false
+  }
+  return true
 }
 
 /**
@@ -184,16 +210,19 @@ export async function apply({ check = false, force = false } = {}) {
   const fingerprint = configFingerprint(manifestText, patchText)
 
   // 安全网：回滚过的配置不再原地重试；安全模式下不自动把第三方插件装回来。
+  // check 模式也要遵守，否则 agent 的「先金丝雀」判断会在冻结状态里反复跑。
   const hold = await readHold()
   const safety = await readSafety()
+  if (safety.mode === 'safe') {
+    return { changed: false, held: true, safeMode: true, fingerprint, reasons: ['处于安全模式，等主电脑处理'] }
+  }
+  if (hold !== null && hold.cleared !== true && hold.fingerprint === fingerprint) {
+    return { changed: false, held: true, fingerprint, reasons: [`上次失败已冻结：${hold.reason ?? ''}`] }
+  }
   if (!check) {
     if (force) {
       await writeHold({ cleared: true, at: new Date().toISOString() })
       await markNormal()
-    } else if (safety.mode === 'safe') {
-      return { changed: false, held: true, safeMode: true, fingerprint, reasons: ['处于安全模式，等主电脑处理'] }
-    } else if (hold !== null && hold.cleared !== true && hold.fingerprint === fingerprint) {
-      return { changed: false, held: true, fingerprint, reasons: [`上次启动失败已回滚：${hold.reason ?? ''}`] }
     } else if (hold !== null && hold.cleared !== true) {
       // 主电脑换了配置：这是新的一次尝试，清掉 hold。
       await writeHold({ cleared: true, at: new Date().toISOString() })
@@ -256,26 +285,8 @@ export async function apply({ check = false, force = false } = {}) {
   if (needsInstall && manifestBefore === manifestText) reasons.push('profile 依赖首次安装')
 
   if (needsInstall) {
-    await log('apply', 'pnpm 安装 profile 依赖（首次或清单变化时）')
-    const result = await run(process.execPath, [
-      PATHS.installedBin,
-      'plugin',
-      '--profile',
-      mirror.profile.name,
-      'install',
-    ], {
-      cwd: PATHS.app,
-      env: {
-        ...process.env,
-        DSH_HOME: PATHS.home,
-        NODE_OPTIONS: withIpv4First(process.env.NODE_OPTIONS),
-      },
-      timeoutMs: 20 * 60 * 1000,
-    })
-    if (result.code !== 0) {
-      await log('apply', `pnpm install 失败（exit ${result.code}）：${(result.stderr || result.stdout).slice(-1500)}`)
-      throw new Error('profile 依赖安装失败，见 logs/apply.log')
-    }
+    const ok = await installProfileDeps(mirror.profile.name)
+    if (!ok) throw new Error('profile 依赖安装失败，见 logs/apply.log')
   }
 
   if (!check) {
@@ -283,6 +294,7 @@ export async function apply({ check = false, force = false } = {}) {
       appliedAt: new Date().toISOString(),
       dshVersion: mirror.dsh.version,
       dietQq,
+      fingerprint,
       manifestHash: await treeHash(profileDir),
       pluginHash,
       pluginCount: mirror.plugins.filter(plugin => plugin.enabled === true).length,

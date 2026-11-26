@@ -145,6 +145,9 @@ async function showStatus() {
     if (status.safeMode) console.log('  安全模式   是（只剩官方 bundle，第三方插件全不加载）')
     if (status.held) console.log(`  已冻结     ${status.recovered || '上次启动失败已回滚，等下一次改动'}`)
     if (status.lastGoodAt) console.log(`  上次好使   ${status.lastGoodAt}`)
+    if (status.canary) {
+      console.log(`  金丝雀     ${status.canary.ok ? '通过' : '失败'}（${status.canary.version || '?'}，${status.canary.stage || ''}${status.canary.error ? `：${status.canary.error}` : ''}）`)
+    }
     if (Number(status.bootFailures) > 0) console.log(`  连续失败   ${status.bootFailures} 次`)
     if (Array.isArray(status.applied) && status.applied.length > 0) console.log(`  最近应用   ${status.applied.join('；')}`)
     if (Array.isArray(status.errors) && status.errors.length > 0) console.log(`  错误       ${status.errors.join('；')}`)
@@ -317,6 +320,11 @@ async function main() {  const { _, flags } = parseArgs(process.argv.slice(2))
       }
       return
     }
+    case 'canary': {
+      const result = await enqueue('canary', {})
+      console.log(JSON.stringify(result, null, 2))
+      return
+    }
     case 'safe-mode': {
       const state = (_[1] ?? '').toLowerCase()
       if (!['on', 'off'].includes(state)) {
@@ -408,7 +416,7 @@ async function main() {  const { _, flags } = parseArgs(process.argv.slice(2))
       return
     }
     default:
-      console.log('命令：status | data | push | version <v> | plugin <名> on|off | restart | rollback | safe-mode on|off | apply | diagnose | logs [--lines n] | shell "<命令>" | ops | remote <url> | init | pack [--qq <QQ>] | install-publish-task | install-agent-tasks')
+      console.log('命令：status | data | push | version <v> | plugin <名> on|off | canary | restart | rollback | safe-mode on|off | apply | diagnose | logs [--lines n] | shell "<命令>" | ops | remote <url> | init | pack [--qq <QQ>] | install-publish-task | install-agent-tasks')
       console.log('远程指令可加 --to <主机名>（或 --to *）指定哪台机器执行；不带就是所有机器都执行。')
   }
 }

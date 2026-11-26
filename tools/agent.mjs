@@ -34,6 +34,7 @@ import {
   writeJson,
 } from './common.mjs'
 import { apply } from './apply.mjs'
+import { canaryCheck } from './canary.mjs'
 import { serverStatus, startServer, stopServer } from './server.mjs'
 import {
   enterSafeMode,
@@ -111,6 +112,10 @@ async function runOp(op, mirror) {
       await sleep(1500)
       const started = await startServer(mirror, { force: true })
       return { ok: true, stopped, started }
+    }
+    case 'canary': {
+      const result = await canaryCheck(mirror)
+      return { ok: result.ok === true, result }
     }
     case 'safe-mode': {
       const on = args.on === true
@@ -262,11 +267,41 @@ export async function once({ quiet = false } = {}) {
   if (!quiet || syncNote.startsWith('拉取失败')) await log('agent', `仓库：${syncNote}`)
 
   let applied = { changed: false, versionChanged: false, reasons: [] }
+  let plan = { changed: false }
   try {
-    applied = await apply()
-    if (applied.changed) await log('agent', `应用配置：${applied.reasons.join('；')}`)
+    plan = await apply({ check: true })
   } catch (error) {
-    errors.push(`apply: ${error instanceof Error ? error.message : String(error)}`)
+    errors.push(`plan: ${error instanceof Error ? error.message : String(error)}`)
+  }
+
+  // 先把要装的东西装进独立实例试一次；通过了才动正在跑的那份。
+  let canary = null
+  if (plan.changed === true && plan.held !== true && plan.safeMode !== true && mirror.canary?.enabled !== false) {
+    canary = await canaryCheck(mirror).catch(error => ({
+      ok: false,
+      stage: 'canary',
+      error: error instanceof Error ? error.message : String(error),
+    }))
+    if (canary.ok !== true) {
+      await writeHold({
+        fingerprint: plan.fingerprint ?? '',
+        at: isoNow(),
+        reason: `金丝雀失败：${canary.error || canary.stage}`,
+      })
+      errors.push(`金丝雀失败，未应用到本机：${canary.error || canary.stage}`)
+      await log('agent', `金丝雀失败，保持现状：${canary.error || canary.stage}`)
+    } else {
+      await log('agent', `金丝雀通过（DSH ${canary.version}，${canary.ms}ms），开始应用`)
+    }
+  }
+
+  if (canary === null || canary.ok === true) {
+    try {
+      applied = await apply()
+      if (applied.changed) await log('agent', `应用配置：${applied.reasons.join('；')}`)
+    } catch (error) {
+      errors.push(`apply: ${error instanceof Error ? error.message : String(error)}`)
+    }
   }
 
   let restarted = false
@@ -331,6 +366,7 @@ export async function once({ quiet = false } = {}) {
   const state = await readJson(PATHS.state, {})
   const safety = await readSafety()
   const holdNow = await readHold()
+  const canaryLast = await readJson(PATHS.canaryResult, null)
   const commit = (await git(['rev-parse', '--short', 'HEAD'])).stdout.trim()
   const dirty = (await git(['status', '--porcelain'])).stdout.trim() !== ''
 
@@ -351,6 +387,13 @@ export async function once({ quiet = false } = {}) {
     safeMode: safety.mode === 'safe',
     bootFailures,
     lastGoodAt: typeof safety.lastGoodAt === 'string' ? safety.lastGoodAt : '',
+    canary: canaryLast === null ? null : {
+      ok: canaryLast.ok === true,
+      version: canaryLast.version ?? '',
+      at: canaryLast.at ?? '',
+      stage: canaryLast.stage ?? '',
+      error: canaryLast.error ?? '',
+    },
     recovered,
     restarted,
     ops: ops.map(op => ({ id: op.id, action: op.action, ok: op.ok === true })),
