@@ -163,6 +163,11 @@ async function main() {
   if (Object.keys(patch).length > 0) await saveLocalConfig(patch)
 
   const local = await loadLocalConfig()
+  if (typeof local.sshKey === 'string' && local.sshKey.trim() !== '') {
+    // 家人电脑用包里的 deploy key 访问仓库：装之前就把 GIT_SSH_COMMAND 指过去。
+    const key = path.resolve(PATHS.kit, local.sshKey)
+    if (await pathExists(key)) process.env.DSH_FAMILY_SSH_KEY = key
+  }
   if (typeof local.dietQq === 'string' && local.dietQq.trim() !== '') {
     await log('install', `这台设备的面板看 QQ ${local.dietQq.trim()} 的饮食（config.local.json）`)
   }

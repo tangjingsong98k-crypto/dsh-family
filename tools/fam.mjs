@@ -195,6 +195,17 @@ async function pack({ dietQq = '' } = {}) {
   const apiKey = await localApiKey()
   const config = { remote, apiKey, packedAt: isoNow() }
   if (dietQq !== '') config.dietQq = dietQq
+  // 家人电脑没有你的 SSH key：把仓库级 deploy key 打进包里，让它的 git 用它。
+  const deployKey = path.join(PATHS.kit, 'secrets', 'deploy', 'id_ed25519')
+  if (await pathExists(deployKey)) {
+    const target = path.join(stage, 'secrets', 'deploy')
+    await ensureDirs(target)
+    await fs.copyFile(deployKey, path.join(target, 'id_ed25519'))
+    const pub = `${deployKey}.pub`
+    if (await pathExists(pub)) await fs.copyFile(pub, path.join(target, 'id_ed25519.pub'))
+    config.role = 'device'
+    config.sshKey = 'secrets/deploy/id_ed25519'
+  }
   await writeJson(path.join(stage, 'config.local.json'), config)
 
   const zipFile = path.join(dist, `dsh-family-kit-${stamp().replace(/[: ]/g, '-')}.zip`)

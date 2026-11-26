@@ -228,15 +228,19 @@ export async function gitAvailable() {
  * @returns {Promise<{ code: number, stdout: string, stderr: string }>} 结果
  */
 export function git(args, options = {}) {
-  return run('git', args, {
-    ...options,
-    env: {
-      ...process.env,
-      GIT_TERMINAL_PROMPT: '0',
-      GIT_ASKPASS: 'echo',
-      ...(options.env ?? {}),
-    },
-  })
+  const env = {
+    ...process.env,
+    GIT_TERMINAL_PROMPT: '0',
+    GIT_ASKPASS: 'echo',
+    ...(options.env ?? {}),
+  }
+  // 家人电脑用仓库级 deploy key（随包发过去），不碰用户自己的 SSH key。
+  // 只在 DSH_FAMILY_SSH_KEY 被显式设上时启用，所以主电脑的 git 不受影响。
+  const key = process.env.DSH_FAMILY_SSH_KEY
+  if (typeof key === 'string' && key.trim() !== '' && existsSync(key)) {
+    env.GIT_SSH_COMMAND = `ssh -i "${key}" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new`
+  }
+  return run('git', args, { ...options, env })
 }
 
 /**

@@ -93,7 +93,8 @@ family-kit\
    ```
 
    （仓库已经 init 过、有一个初始提交；第一次只需要 `remote` 这一步。）
-   `remote` 绑远端并推第一版。
+   `remote` 绑远端并推第一版。本机已经绑到
+   `git@github.com:tangjingsong98k-crypto/dsh-family.git`，这步不用再跑。
    不想把 token 写进 URL 也行：先 `git remote add origin <url>`，靠 Git Credential Manager
    记住凭据——但家人电脑那边仍要在 `config.local.json` 里有可用的远端地址。
 
@@ -136,8 +137,15 @@ node tools\fam.mjs pack
 # 已打包：C:\custom\dsh\family-kit\dist\dsh-family-kit-2026-11-26-19-10-00.zip（取自远端仓库）
 ```
 
-包里已经带好：`config.local.json`（远端地址 + DeepSeek API key）、插件源码、模板。
+包里已经带好：`config.local.json`（远端地址 + DeepSeek API key）、插件源码、模板，
+以及一把**只属于这个仓库的 deploy key**（`secrets\deploy\id_ed25519`）。
 把 zip 拷到家人电脑（U 盘 / 网盘 / QQ 都行）。
+
+> 第一次打包前，把这把 key 的公钥加到仓库，否则家人电脑拉不动：
+> GitHub 仓库 → Settings → Deploy keys → Add deploy key →
+> 标题随意，Key 粘贴 `secrets\deploy\id_ed25519.pub` 的内容 → **勾选 Allow write access**。
+> 加完再 `pack`。家人电脑的 git 会自动用包里这把钥匙（`config.local.json` 的 `sshKey`），
+> 不登录 GitHub、也不碰你自己的 SSH key。
 
 > 想换一个 API key：改 `config.local.json` 的 `apiKey`，重新 `pack` 一次
 > （或者直接在家人电脑 DSH 的「设置」里换）。

@@ -11,6 +11,7 @@
  */
 
 import fs from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -22,6 +23,7 @@ import {
   hostName,
   installedDshVersion,
   isoNow,
+  loadLocalConfig,
   loadMirror,
   log,
   parseArgs,
@@ -259,6 +261,11 @@ async function dataSummary() {
  */
 export async function once({ quiet = false } = {}) {
   await ensureDirs(PATHS.logs, PATHS.status, PATHS.ops, PATHS.data, PATHS.work)
+  const local = await loadLocalConfig()
+  if (typeof local.sshKey === 'string' && local.sshKey.trim() !== '') {
+    const key = path.resolve(PATHS.kit, local.sshKey)
+    if (existsSync(key)) process.env.DSH_FAMILY_SSH_KEY = key
+  }
   const mirror = await loadMirror()
   const port = Number(mirror.dsh.port)
   const errors = []
