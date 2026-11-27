@@ -331,6 +331,12 @@ async function main() {  const { _, flags } = parseArgs(process.argv.slice(2))
       }
       return
     }
+    case 'reschedule': {
+      const minutes = Number(flags.minutes) > 0 ? Number(flags.minutes) : 0
+      const result = await enqueue('reschedule', minutes > 0 ? { minutes } : {})
+      console.log(JSON.stringify(result, null, 2))
+      return
+    }
     case 'canary': {
       const result = await enqueue('canary', {})
       console.log(JSON.stringify(result, null, 2))

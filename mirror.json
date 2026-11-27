@@ -24,7 +24,7 @@
     "keepDays": 420
   },
   "agent": {
-    "intervalMinutes": 2,
+    "intervalMinutes": 1,
     "keepLogLines": 40
   },
   "safety": {

@@ -37,6 +37,7 @@ import {
 } from './common.mjs'
 import { apply } from './apply.mjs'
 import { canaryCheck } from './canary.mjs'
+import { installTasks } from './tasks.mjs'
 import { serverStatus, startServer, stopServer } from './server.mjs'
 import {
   enterSafeMode,
@@ -109,6 +110,11 @@ async function runOp(op, mirror) {
   const args = op.args !== null && typeof op.args === 'object' ? op.args : {}
   const port = Number(mirror.dsh.port)
   switch (action) {
+    case 'reschedule': {
+      const minutes = Number(args.minutes) > 0 ? Number(args.minutes) : (Number(mirror.agent?.intervalMinutes) || 2)
+      const ok = await installTasks(minutes)
+      return { ok, minutes }
+    }
     case 'restart': {
       const stopped = await stopServer(port)
       await sleep(1500)
