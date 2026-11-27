@@ -856,6 +856,7 @@ window.__ModuleLoader__.load({
 .bal-user{display:flex;align-items:center;gap:6px;align-self:flex-start;font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary)}
 .bal-user select{font:inherit;font-size:11px;line-height:18px;max-width:240px;padding:2px 6px;border-radius:6px;border:1px solid var(--dsw-alias-border-secondary);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
 .bal-user select:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary));outline-offset:1px}
+.bal-user-empty{font-size:11px;color:var(--dsw-alias-label-secondary)}
 .bal-bars{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:2px}
 .bal-bar-group{display:flex;flex-direction:column;gap:2px;min-width:0;border-radius:4px}
 .bal-bar-group[data-current]{background:var(--dsw-alias-bg-layer-2)}
@@ -2076,16 +2077,18 @@ window.__ModuleLoader__.load({
               'data-active': module === 'diet' ? '' : undefined,
               onClick: () => { setModule('diet') },
             }, t('module.diet'))),
-          module === 'diet' && dietUsers.length > 0
+          module === 'diet'
             ? h('label', { className: 'bal-user' },
               h('span', null, t('diet.user')),
-              h('select', {
-                className: 'bal-user-select',
-                value: dietQq,
-                disabled: busy,
-                onChange: event => { setDietQq(event.target.value) },
-              }, dietUsers.map(user => h('option', { key: user.qq, value: user.qq },
-                user.nickname ? `${user.nickname}（${user.qq}）` : String(user.qq)))))
+              dietUsers.length === 0
+                ? h('span', { className: 'bal-user-empty' }, t('diet.user.none'))
+                : h('select', {
+                  className: 'bal-user-select',
+                  value: dietQq,
+                  disabled: busy,
+                  onChange: event => { setDietQq(event.target.value) },
+                }, dietUsers.map(user => h('option', { key: user.qq, value: user.qq },
+                  user.nickname ? `${user.nickname}（${user.qq}）` : String(user.qq)))))
             : null,
           module === 'money'
             ? h('div', { className: 'bal-summary' },
