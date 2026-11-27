@@ -819,6 +819,69 @@ function runDiet(command) {
 }
 
 /**
+ * 跑配置里的同步命令（例如 `node .../publish.mjs` 或 `node .../sync-now.mjs`）。
+ *
+ * 面板上的「同步」按钮和「立刻提交」都走这里：命令是 profile 配置写死的，
+ * 浏览器只能触发、不能传命令，避免把面板接口变成任意命令执行。
+ *
+ * @param {string} command - 完整命令行
+ * @returns {Promise<{ code: number, output: string }>} 结果
+ */
+function runSyncCommand(command) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, {
+      shell: true,
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    let out = ''
+    let err = ''
+    let settled = false
+    const timer = setTimeout(() => {
+      if (settled) return
+      settled = true
+      try {
+        child.kill()
+      } catch {
+        // 已经退了。
+      }
+      reject(Object.assign(new Error('同步命令超时（4 分钟）。'), { code: 'balance/sync-timeout' }))
+    }, 240000)
+    child.stdout.on('data', (chunk) => { out += chunk.toString('utf8') })
+    child.stderr.on('data', (chunk) => { err += chunk.toString('utf8') })
+    child.on('error', (error) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      reject(Object.assign(new Error(`跑不动同步命令：${error.message}`), { code: 'balance/sync-spawn' }))
+    })
+    child.on('close', (code) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      const text = `${out}${err}`.trim()
+      resolve({ code: code ?? -1, output: text.length > 4000 ? text.slice(-4000) : text })
+    })
+  })
+}
+
+/**
+ * 建一个「同步」入口：命令来自 profile 配置（`syncCommand`），没配就是没开。
+ * @param {object} [rawConfig] - 插件行配置
+ * @returns {{ command: string, run: () => Promise<{ code: number, output: string }> }} 同步能力
+ */
+export function createSyncAccess(rawConfig = {}) {
+  const settings = rawConfig !== null && typeof rawConfig === 'object' ? rawConfig : {}
+  const command = typeof settings.syncCommand === 'string' ? settings.syncCommand.trim() : ''
+  return {
+    command,
+    run: () => (command === ''
+      ? Promise.reject(Object.assign(new Error('这台设备没配同步命令（profile 里的 syncCommand）。'), { code: 'balance/sync-off' }))
+      : runSyncCommand(command)),
+  }
+}
+
+/**
  * 建一个饮食数据源：主电脑走 docker（容器里的 panel_api.py），
  * 家人电脑走主电脑发布过来的 JSON 快照（只读）。
  *
@@ -1150,7 +1213,7 @@ async function reestimateMeal(mealId) {
  * @param {object} [diet] - 饮食数据源（createDietAccess 的返回值；省略即主电脑的 docker 直连）
  * @returns {Promise<{ ok: true, value: any } | { ok: false, error: { code: string, message: string, details: object } }>} 结果
  */
-export async function handleRpc(ledger, endpoint, payload, diet = DOCKER_DIET) {
+export async function handleRpc(ledger, endpoint, payload, diet = DOCKER_DIET, sync = { command: '', run: () => Promise.reject(new Error('sync')) }) {
   const input = payload !== null && typeof payload === 'object' ? payload : {}
   const dietOf = diet !== null && typeof diet === 'object' && typeof diet.call === 'function' ? diet : DOCKER_DIET
   /**
@@ -1186,6 +1249,13 @@ export async function handleRpc(ledger, endpoint, payload, diet = DOCKER_DIET) {
             current: dietOf.qq,
           },
         }
+      case 'sync-now': {
+        if (sync === null || typeof sync !== 'object' || typeof sync.run !== 'function' || (sync.command ?? '') === '') {
+          fail('balance/sync-off', '这台设备没配同步命令（profile 里的 syncCommand）。')
+        }
+        const outcome = await sync.run()
+        return { ok: true, value: { code: outcome.code, ok: outcome.code === 0, output: outcome.output } }
+      }
       case 'diet-load':
         return { ok: true, value: await dietOf.call({ cmd: 'day', qq: pickQq(input.qq), day: input.day }) }
       case 'diet-month':
