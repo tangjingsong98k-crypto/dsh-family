@@ -95,5 +95,9 @@
       "enabled": false,
       "why": "红队工具，家人电脑不需要"
     }
-  ]
+  ],
+  "conflict": {
+    "autoSession": true,
+    "note": "pull 变基冲突时：数据文件按规则自动合；代码/配置冲突开 headless 会话初判，事实矛盾写 runtime/conflict-questions.md"
+  }
 }

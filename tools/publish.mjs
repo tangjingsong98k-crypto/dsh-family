@@ -35,6 +35,7 @@ import {
   writeText,
 } from './common.mjs'
 import { buildStats, renderHtml } from './stats.mjs'
+import { pullSafe } from './conflict.mjs'
 
 /** 这台机器上的默认数据来源（publisher.json 可覆盖）。 */
 const DEFAULT_PUBLISHER = {
@@ -218,7 +219,10 @@ async function commitAndPush(mirror, message) {
   if (commit.code !== 0) return `提交失败：${(commit.stderr || '').trim().split(/\r?\n/).slice(-2).join(' ')}`
   const push = await git(['push', 'origin', `HEAD:${mirror.git.branch}`], { timeoutMs: 180000 })
   if (push.code === 0) return '已提交并推送'
-  await git(['pull', '--rebase', '--autostash', 'origin', mirror.git.branch], { timeoutMs: 180000 })
+  const pulled = await pullSafe({ branch: mirror.git.branch })
+  if (!pulled.ok) {
+    return `推送失败，且拉取有冲突：${pulled.unresolved.join(', ') || pulled.note}（见 runtime/conflict.json）`
+  }
   const retry = await git(['push', 'origin', `HEAD:${mirror.git.branch}`], { timeoutMs: 180000 })
   return retry.code === 0 ? '已提交并推送（重试成功）' : `推送失败：${(retry.stderr || '').trim().split(/\r?\n/).slice(-2).join(' ')}`
 }

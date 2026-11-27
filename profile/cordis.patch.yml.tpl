@@ -14,6 +14,7 @@
     readOnly: true
     dietSnapshot: '{{DATA}}/diet/diet.json'
     dietQq: '{{DIET_QQ}}'
+    syncCommand: 'node {{KIT}}/tools/sync-now.mjs'
 
 # 默认模型：和主电脑一致（DeepSeek 官方 provider，flash + 最大思考）。
 - id: agent-default-model

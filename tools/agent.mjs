@@ -37,6 +37,7 @@ import {
 } from './common.mjs'
 import { apply } from './apply.mjs'
 import { canaryCheck } from './canary.mjs'
+import { pullSafe, triageConflict } from './conflict.mjs'
 import { installTasks } from './tasks.mjs'
 import { serverStatus, startServer, stopServer } from './server.mjs'
 import {
@@ -78,10 +79,24 @@ async function syncRepo(mirror) {
   if (remote === '') return '没有配置远端，跳过同步'
   await ensureOrigin(remote)
   const before = (await git(['rev-parse', '--short', 'HEAD'])).stdout.trim()
-  const pull = await git(['pull', '--rebase', '--autostash', 'origin', mirror.git.branch], { timeoutMs: 180000 })
-  if (pull.code !== 0) {
-    const detail = (pull.stderr || pull.stdout).trim().split(/\r?\n/).slice(-3).join(' | ')
-    return `拉取失败：${detail}`
+  const pulled = await pullSafe({ branch: mirror.git.branch })
+  if (!pulled.ok) {
+    if (pulled.unresolved.length > 0 && mirror.conflict?.autoSession !== false) {
+      // 开一个 headless 会话初判：能按事实解决的让它解决，事实矛盾的写成问题。
+      const bin = existsSync(PATHS.installedBin)
+        ? PATHS.installedBin
+        : 'C:/custom/dsh/deepseek-harness/deepseek-harness/apps/cli/lib/bin.js'
+      const triage = await triageConflict({
+        command: {
+          execPath: process.execPath,
+          args: [bin, 'headless', '-', '--add-dir', PATHS.kit, '--approval-policy', 'never'],
+        },
+      }).catch(error => ({ ok: false, error: String(error) }))
+      await log('agent', triage.ok
+        ? `冲突已交给会话：${String(triage.reply).slice(0, 300)}`
+        : `冲突会话没跑起来：${triage.error}`)
+    }
+    return `拉取失败：${pulled.note}${pulled.unresolved.length ? '（' + pulled.unresolved.join(', ') + '）' : ''}`
   }
   const after = (await git(['rev-parse', '--short', 'HEAD'])).stdout.trim()
   return before === after ? '已是最新' : `已更新 ${before} -> ${after}`

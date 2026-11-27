@@ -37,6 +37,7 @@ export const PATHS = {
   hold: path.join(KIT_ROOT, 'runtime', 'hold.json'),
   safety: path.join(KIT_ROOT, 'runtime', 'safety.json'),
   failures: path.join(KIT_ROOT, 'runtime', 'boot-failures.json'),
+  conflictReport: path.join(KIT_ROOT, 'runtime', 'conflict.json'),
   loginUrl: path.join(KIT_ROOT, 'runtime', 'login-url.txt'),
   pidFile: path.join(KIT_ROOT, 'runtime', 'dsh.pid'),
   nodePath: path.join(KIT_ROOT, 'runtime', 'node-path.txt'),
