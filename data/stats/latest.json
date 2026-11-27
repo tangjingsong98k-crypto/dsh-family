@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-11-26T11:11:52.035Z",
-  "sourceHash": "305eb55812e20f50664c9c959078a633abe855c4",
-  "today": "2026-11-26",
+  "generatedAt": "2026-11-27T07:18:01.877Z",
+  "sourceHash": "3087cf9ef6cd8c91bafca2dc478fdbe5845d5e4e",
+  "today": "2026-11-27",
   "month": "2026-11",
   "ledger": {
     "count": 18,
     "today": {
-      "expense": 9.7,
+      "expense": 0,
       "income": 0,
-      "net": -9.7,
-      "count": 2
+      "net": 0,
+      "count": 0
     },
     "month": {
       "expense": 1015.6,
@@ -40,11 +40,6 @@
       }
     ],
     "recentDays": [
-      {
-        "day": "2026-11-13",
-        "expense": 0,
-        "income": 0
-      },
       {
         "day": "2026-11-14",
         "expense": 0,
@@ -109,26 +104,27 @@
         "day": "2026-11-26",
         "expense": 9.7,
         "income": 0
+      },
+      {
+        "day": "2026-11-27",
+        "expense": 0,
+        "income": 0
       }
     ]
   },
   "diet": {
     "qq": "1044949250",
     "target": 0,
-    "hasData": false,
+    "hasData": true,
     "today": {
-      "kcal": 0,
-      "meals": 0
+      "kcal": 869.5,
+      "meals": 2
     },
     "month": {
-      "loggedDays": 0,
-      "avg": 0
+      "loggedDays": 1,
+      "avg": 869.5
     },
     "recentDays": [
-      {
-        "day": "2026-11-13",
-        "kcal": 0
-      },
       {
         "day": "2026-11-14",
         "kcal": 0
@@ -180,9 +176,13 @@
       {
         "day": "2026-11-26",
         "kcal": 0
+      },
+      {
+        "day": "2026-11-27",
+        "kcal": 869.5
       }
     ],
-    "lastLoggedDay": ""
+    "lastLoggedDay": "2026-11-27"
   },
   "source": {
     "ledger": "workzone/balance/ledger.json",
