@@ -249,6 +249,22 @@ await check('请求里的 qq 可以临时切到另一个人', async () => {
   assert.equal(month.value.days['2026-11-26'], 600)
 })
 
+
+await check("sync-now 没配命令时明确拒绝", async () => {
+  const ledger = createLedger({ root, readOnly: true })
+  const result = await handleRpc(ledger, "sync-now", {}, undefined, { command: "", run: async () => ({ code: 0, output: "" }) })
+  assert.equal(result.ok, false)
+  assert.equal(result.error.code, "balance/sync-off")
+})
+
+await check("sync-now 有命令时把输出带回来", async () => {
+  const ledger = createLedger({ root, readOnly: true })
+  const result = await handleRpc(ledger, "sync-now", {}, undefined, { command: "x", run: async () => ({ code: 0, output: "synced" }) })
+  assert.equal(result.ok, true)
+  assert.equal(result.value.ok, true)
+  assert.equal(result.value.output, "synced")
+})
+
 for (const dir of dirs) await fs.rm(dir, { recursive: true, force: true })
 
 console.log(`\n${passed} checks passed`)

@@ -45,6 +45,13 @@ window.__ModuleLoader__.load({
       'module.diet': '饮食',
       'diet.user': '看谁',
       'diet.user.none': '还没有可切换的人',
+      'sync.button': '同步',
+      'sync.running': '同步中…',
+      'sync.done': '已同步，数据是最新的。',
+      'sync.failed': '同步失败',
+      'sync.pending': '已保存。要立刻同步到其他机器吗？',
+      'sync.now': '立刻同步',
+      'sync.later': '等自动同步',
       'month.prev': '上个月',
       'month.next': '下个月',
       'month.today': '今天',
@@ -166,6 +173,13 @@ window.__ModuleLoader__.load({
       'module.diet': 'Meals',
       'diet.user': 'Whose',
       'diet.user.none': 'Nobody to switch to yet',
+      'sync.button': 'Sync',
+      'sync.running': 'Syncing…',
+      'sync.done': 'Synced; data is up to date.',
+      'sync.failed': 'Sync failed',
+      'sync.pending': 'Saved. Sync to the other machines now?',
+      'sync.now': 'Sync now',
+      'sync.later': 'Later',
       'month.prev': 'Previous month',
       'month.next': 'Next month',
       'month.today': 'Today',
@@ -857,6 +871,7 @@ window.__ModuleLoader__.load({
 .bal-user select{font:inherit;font-size:11px;line-height:18px;max-width:240px;padding:2px 6px;border-radius:6px;border:1px solid var(--dsw-alias-border-secondary);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
 .bal-user select:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary));outline-offset:1px}
 .bal-user-empty{font-size:11px;color:var(--dsw-alias-label-secondary)}
+.bal-syncbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;border-top:.5px solid var(--dsw-alias-border-l1);font-size:11px;color:var(--dsw-alias-label-secondary)}
 .bal-bars{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:2px}
 .bal-bar-group{display:flex;flex-direction:column;gap:2px;min-width:0;border-radius:4px}
 .bal-bar-group[data-current]{background:var(--dsw-alias-bg-layer-2)}
@@ -1725,6 +1740,8 @@ window.__ModuleLoader__.load({
       const [chartError, setChartError] = useState('')
       const [chartRetry, setChartRetry] = useState(0)
       const [notice, setNotice] = useState('')
+      const [pendingSync, setPendingSync] = useState(false)
+      const [syncing, setSyncing] = useState(false)
       const ticket = useRef(0)
       const gridRef = useRef(null)
       const dayCardRef = useRef(null)
@@ -1957,6 +1974,7 @@ window.__ModuleLoader__.load({
               kind: form.kind === 'income' ? t('form.income') : t('form.expense'),
               amount: money(entry.amount),
             }))
+            setPendingSync(true)
           }
         } catch (failure) {
           setProblem(readableError(failure, t))
@@ -1979,6 +1997,7 @@ window.__ModuleLoader__.load({
               kind: removed.kind === 'income' ? t('form.income') : t('form.expense'),
               amount: money(removed.amount),
             }))
+            setPendingSync(true)
           }
         } catch (failure) {
           setProblem(readableError(failure, t))
@@ -1987,10 +2006,29 @@ window.__ModuleLoader__.load({
         }
       }, [balance, form.id, form.kind, load, selected, t, year])
 
+      const syncNow = useCallback(async () => {
+        if (syncing) return
+        setSyncing(true)
+        setProblem('')
+        setNotice('')
+        try {
+          const result = await balance.syncNow()
+          setPendingSync(false)
+          const detail = result !== null && typeof result === 'object' ? String(result.output ?? '').slice(-200) : ''
+          setNotice(result !== null && typeof result === 'object' && result.ok === true
+            ? t('sync.done')
+            : `${t('sync.failed')}：${detail}`)
+          await load(year)
+        } catch (failure) {
+          setProblem(`${t('sync.failed')}：${readableError(failure, t)}`)
+        } finally {
+          setSyncing(false)
+        }
+      }, [balance, load, syncing, t, year])
+
       const onFormChange = useCallback((patch) => {
         setForm(previous => ({ ...previous, ...patch }))
       }, [])
-
       const startEdit = useCallback((entry) => {
         setForm({
           id: entry.id, date: entry.date, kind: entry.kind,
@@ -2132,6 +2170,18 @@ window.__ModuleLoader__.load({
             ? h(MonthlyBars, { entries, year, month, t })
             : h(KcalMonthlyBars, { t, year, month, kcalData: kcalYear }),
           module === 'money' ? h(CategoryBars, { rows, entries, year, month, t }) : null),
+        pendingSync
+          ? h('div', { className: 'bal-syncbar' },
+            h('span', null, t('sync.pending')),
+            h('button', {
+              type: 'button', className: 'bal-primary', disabled: syncing || busy,
+              onClick: () => { void syncNow() },
+            }, t('sync.now')),
+            h('button', {
+              type: 'button', className: 'bal-ghost',
+              onClick: () => { setPendingSync(false) },
+            }, t('sync.later')))
+          : null,
         h('footer', { className: 'bal-foot' },
           h('span', {
             className: 'bal-file',
@@ -2139,6 +2189,7 @@ window.__ModuleLoader__.load({
             title: data.file,
             'data-tone': notice === '' ? undefined : 'ok',
           }, footerText({ busy, notice, file: data.file }, t)),
+          h('button', { type: 'button', className: 'bal-link', disabled: busy || syncing, onClick: () => { void syncNow() } }, syncing ? t('sync.running') : t('sync.button')),
           h('button', { type: 'button', className: 'bal-link', disabled: busy, onClick: () => { setNotice(''); void load(year) } }, t('status.reload'))))
     }
 
@@ -2203,6 +2254,7 @@ window.__ModuleLoader__.load({
         save: entry => call('save', { entry }),
         remove: id => call('remove', { id }),
         dietUsers: () => call('diet-users', {}),
+        syncNow: () => call('sync-now', {}),
         dietLoad: (day, qq) => call('diet-load', qq === undefined || qq === '' ? { day } : { day, qq }),
         dietMonth: (year, month, qq) => call('diet-month', qq === undefined || qq === '' ? { year, month } : { year, month, qq }),
         dietYear: (year, qq) => call('diet-year', qq === undefined || qq === '' ? { year } : { year, qq }),

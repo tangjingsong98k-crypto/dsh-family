@@ -1377,9 +1377,10 @@ function rejected(ctx, req, res) {
  * @param {import('node:http').IncomingMessage} req - 请求
  * @param {import('node:http').ServerResponse} res - 响应
  * @param {object} [diet] - 饮食数据源（省略即 docker 直连）
+ * @param {object} [sync] - 同步能力（createSyncAccess 的返回值）
  * @returns {Promise<void>} 完成
  */
-export async function handleHttp(ctx, ledger, req, res, diet) {
+export async function handleHttp(ctx, ledger, req, res, diet, sync) {
   if (rejected(ctx, req, res)) return
   const url = new URL(String(req.url ?? '/'), 'http://localhost')
   if (req.method !== 'POST') {
@@ -1398,7 +1399,7 @@ export async function handleHttp(ctx, ledger, req, res, diet) {
     sendJson(res, 200, { ok: false, error: { code: codeOf(error), message: messageOf(error), details: {} } })
     return
   }
-  sendJson(res, 200, await handleRpc(ledger, endpoint, payload, diet))
+  sendJson(res, 200, await handleRpc(ledger, endpoint, payload, diet, sync))
 }
 
 // ---------------------------------------------------------------------------
@@ -1606,12 +1607,13 @@ export function apply(ctx, config) {
   const settings = config ?? {}
   const ledger = createLedger(settings)
   const diet = createDietAccess(settings)
+  const sync = createSyncAccess(settings)
   registerTools(ctx, ledger)
   ctx.inject(['webServer'], (scope) => {
     scope.effect(() => scope.webServer.register({
       kind: 'prefix',
       path: CHANNEL,
-      handler: (req, res) => handleHttp(ctx, ledger, req, res, diet),
+      handler: (req, res) => handleHttp(ctx, ledger, req, res, diet, sync),
     }), `dsh-balance: HTTP API ${CHANNEL}`)
   })
 }
@@ -1620,6 +1622,8 @@ export function apply(ctx, config) {
 export const internals = {
   createLedger,
   createDietAccess,
+  createSyncAccess,
+  runSyncCommand,
   readDietSnapshot,
   readSnapshotUsers,
   dayFromSnapshot,
