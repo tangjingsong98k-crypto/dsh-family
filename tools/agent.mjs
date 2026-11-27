@@ -395,6 +395,8 @@ export async function once({ quiet = false } = {}) {
   const safety = await readSafety()
   const holdNow = await readHold()
   const canaryLast = await readJson(PATHS.canaryResult, null)
+  const questionsFile = path.join(PATHS.runtime, 'conflict-questions.md')
+  const conflictQuestions = existsSync(questionsFile) ? (await readText(questionsFile)).slice(0, 2000) : ''
   const commit = (await git(['rev-parse', '--short', 'HEAD'])).stdout.trim()
   const dirty = (await git(['status', '--porcelain'])).stdout.trim() !== ''
 
@@ -423,6 +425,7 @@ export async function once({ quiet = false } = {}) {
       error: canaryLast.error ?? '',
     },
     recovered,
+    conflictQuestions,
     restarted,
     ops: ops.map(op => ({ id: op.id, action: op.action, ok: op.ok === true })),
     data,

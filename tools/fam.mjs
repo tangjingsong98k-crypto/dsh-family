@@ -149,6 +149,10 @@ async function showStatus() {
       console.log(`  金丝雀     ${status.canary.ok ? '通过' : '失败'}（${status.canary.version || '?'}，${status.canary.stage || ''}${status.canary.error ? `：${status.canary.error}` : ''}）`)
     }
     if (Number(status.bootFailures) > 0) console.log(`  连续失败   ${status.bootFailures} 次`)
+    if (typeof status.conflictQuestions === 'string' && status.conflictQuestions.trim() !== '') {
+      console.log('  冲突问题（需要你拍板）')
+      for (const line of status.conflictQuestions.trim().split(/\r?\n/).slice(0, 6)) console.log(`    ${line}`)
+    }
     if (Array.isArray(status.applied) && status.applied.length > 0) console.log(`  最近应用   ${status.applied.join('；')}`)
     if (Array.isArray(status.errors) && status.errors.length > 0) console.log(`  错误       ${status.errors.join('；')}`)
     if (Array.isArray(status.logTail) && status.logTail.length > 0) console.log(`  日志尾巴   ${status.logTail.slice(-3).join(' / ')}`)
