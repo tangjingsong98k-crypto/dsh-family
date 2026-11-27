@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "exportedAt": "2026-11-27T15:18:01+08:00",
+  "exportedAt": "2026-11-27T15:19:05+08:00",
   "source": "astrbot_plugin_diet_log",
   "users": {
     "1044949250": {
       "qq": "1044949250",
-      "target": 0,
+      "target": 2250,
       "profile": {
         "goal": "maintain",
         "weight_kg": 0

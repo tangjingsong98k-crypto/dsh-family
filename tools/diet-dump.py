@@ -76,7 +76,7 @@ def load_meta(db: sqlite3.Connection) -> tuple[dict, object]:
         store = DietDB(DB_PATH)
         tz = getattr(N, "TZ", None)
         target_fn = N.target_kcal
-        for row in db.execute("SELECT qq FROM users"):
+        for row in db.execute("SELECT qq FROM users UNION SELECT DISTINCT qq FROM meals"):
             qq = str(row["qq"])
             profile = U.load_profile(store, qq, {}) or {}
             profiles[qq] = {

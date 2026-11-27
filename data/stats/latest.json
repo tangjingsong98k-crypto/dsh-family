@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-11-27T07:18:01.877Z",
-  "sourceHash": "3087cf9ef6cd8c91bafca2dc478fdbe5845d5e4e",
+  "generatedAt": "2026-11-27T07:19:05.290Z",
+  "sourceHash": "f337be43e3986253df9c4fbf75becd5be216dd0d",
   "today": "2026-11-27",
   "month": "2026-11",
   "ledger": {
@@ -114,7 +114,7 @@
   },
   "diet": {
     "qq": "1044949250",
-    "target": 0,
+    "target": 2250,
     "hasData": true,
     "today": {
       "kcal": 869.5,
