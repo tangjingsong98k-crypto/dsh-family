@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-26T09:14:15.296Z",
+  "updatedAt": "2026-11-27T07:41:54.184Z",
   "entries": [
     {
       "id": "bmwp21gcmenpt",
@@ -181,6 +181,26 @@
       "note": "外卖猪脚饭",
       "createdAt": "2026-11-26T09:14:15.296Z",
       "updatedAt": "2026-11-26T09:14:15.296Z"
+    },
+    {
+      "id": "bmwyoankrr03u",
+      "date": "2026-11-27",
+      "kind": "expense",
+      "amount": 216,
+      "category": "购物",
+      "note": "todesk会员升级费用",
+      "createdAt": "2026-11-27T07:41:42.747Z",
+      "updatedAt": "2026-11-27T07:41:42.747Z"
+    },
+    {
+      "id": "bmwyoawegh1qi",
+      "date": "2026-11-27",
+      "kind": "expense",
+      "amount": 2,
+      "category": "交通",
+      "note": "公交",
+      "createdAt": "2026-11-27T07:41:54.184Z",
+      "updatedAt": "2026-11-27T07:41:54.184Z"
     }
   ]
 }

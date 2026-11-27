@@ -1,21 +1,21 @@
 {
-  "generatedAt": "2026-11-27T07:19:05.290Z",
-  "sourceHash": "f337be43e3986253df9c4fbf75becd5be216dd0d",
+  "generatedAt": "2026-11-27T07:42:01.448Z",
+  "sourceHash": "aae6f0d0446ad50d3ad022909f6e506ebc442cf8",
   "today": "2026-11-27",
   "month": "2026-11",
   "ledger": {
-    "count": 18,
+    "count": 20,
     "today": {
-      "expense": 0,
+      "expense": 218,
       "income": 0,
-      "net": 0,
-      "count": 0
+      "net": -218,
+      "count": 2
     },
     "month": {
-      "expense": 1015.6,
+      "expense": 1233.6,
       "income": 0,
-      "net": -1015.6,
-      "count": 18
+      "net": -1233.6,
+      "count": 20
     },
     "categories": [
       {
@@ -24,19 +24,19 @@
         "count": 7
       },
       {
+        "category": "购物",
+        "amount": 221.7,
+        "count": 2
+      },
+      {
         "category": "餐饮",
         "amount": 153.9,
         "count": 5
       },
       {
         "category": "交通",
-        "amount": 20,
-        "count": 5
-      },
-      {
-        "category": "购物",
-        "amount": 5.7,
-        "count": 1
+        "amount": 22,
+        "count": 6
       }
     ],
     "recentDays": [
@@ -107,7 +107,7 @@
       },
       {
         "day": "2026-11-27",
-        "expense": 0,
+        "expense": 218,
         "income": 0
       }
     ]
